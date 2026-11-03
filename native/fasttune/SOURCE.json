@@ -1,0 +1,8 @@
+{
+  "name": "FastTune",
+  "repository": "https://github.com/FastTune/FastTune",
+  "commit": "83c732bf0ba6830fd0ceac9358258a950399b9ca",
+  "license": "MIT",
+  "integratedModule": "pitch/_pitch_pef.c",
+  "note": "The public repository does not contain trained TuneNN weights. This integration uses the published PEF C engine compiled to WebAssembly."
+}

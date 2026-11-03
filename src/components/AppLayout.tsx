@@ -20,7 +20,7 @@ export default function AppLayout() {
       </aside>
       <main className="app-main"><Outlet /></main>
       {!isDetail && (
-        <nav className="bottom-nav">
+        <nav className={`bottom-nav ${location.pathname === '/tuner' ? 'tuner-nav' : ''}`}>
           <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}><House size={21} /><span>琴谱</span></NavLink>
           <NavLink to="/import" className={({ isActive }) => `import-nav ${isActive ? 'active' : ''}`}><span className="import-circle"><Import size={23} /></span><span>导入</span></NavLink>
           <NavLink to="/tuner" className={({ isActive }) => isActive ? 'active' : ''}><Music2 size={21} /><span>调音器</span></NavLink>

@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
+    "build:fasttune": "node scripts/build-fasttune.mjs",
+    "test:fasttune": "node scripts/test-fasttune.mjs",
+    "test:guitar-tones": "node scripts/test-guitar-tones.mjs",
+    "build:audio": "python scripts/build-guitar-samples.py",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
