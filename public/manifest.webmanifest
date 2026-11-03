@@ -1,0 +1,10 @@
+{
+  "name": "拾谱 · 民谣吉他谱",
+  "short_name": "拾谱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#f7f6f2",
+  "description": "导入、整理和弹奏你的民谣吉他谱",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
