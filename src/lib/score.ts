@@ -12,10 +12,17 @@ const patternFor = (index: number) => {
   return patterns[index % patterns.length];
 };
 
-export const makeMeasure = (chord: string, index = 0): TabMeasure => ({
+export const makeMeasure = (chord: string, index = 0, tab?: string, melody = '', lyric = ''): TabMeasure => ({
   id: uid(),
   chord,
   strings: [...patternFor(index)],
+  tab,
+  melody,
+  lyric,
+});
+
+export const emptyMeasure = (chord = 'C'): TabMeasure => ({
+  id: uid(), chord, strings: Array.from({ length: 6 }, () => ''), tab: '- - - - - - - -', melody: '', lyric: '',
 });
 
 export function detectTitle(text: string, fileName = '') {
@@ -41,10 +48,22 @@ export function detectChords(text: string) {
 }
 
 export function createTabDraft(text: string) {
-  const found = detectChords(text).filter((chord) => chord.length <= 6);
-  const chords = found.length >= 2 ? found.slice(0, 8) : ['C', 'Am', 'F', 'G'];
-  const measures = Array.from({ length: 8 }, (_, index) => makeMeasure(chords[index % chords.length], index));
-  return [{ id: uid(), name: '主歌', measures }];
+  const sections: { id: string; name: string; measures: TabMeasure[] }[] = [];
+  let current = { id: uid(), name: '主歌', measures: [] as TabMeasure[] };
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    const sectionMatch = line.match(/\[([^\]]{1,12})\]|^(前奏|主歌|副歌|间奏|桥段|尾奏)/);
+    if (sectionMatch) {
+      if (current.measures.length) sections.push(current);
+      current = { id: uid(), name: sectionMatch[1] || sectionMatch[2], measures: [] };
+      continue;
+    }
+    const chords = detectChords(line).filter((chord) => chord.length <= 6).slice(0, 8);
+    if (chords.length) current.measures.push(...chords.map((chord) => emptyMeasure(chord)));
+  }
+  if (current.measures.length || !sections.length) sections.push(current);
+  if (!sections[0].measures.length) sections[0].measures = ['C', 'Am', 'F', 'G'].map((chord) => emptyMeasure(chord));
+  return sections;
 }
 
 export function createChordDraft(text: string) {

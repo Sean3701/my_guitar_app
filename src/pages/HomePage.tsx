@@ -7,6 +7,10 @@ import type { Score, ScoreType } from '../types';
 
 type Filter = 'all' | ScoreType | 'favorite';
 
+const isImageOnly = (score: Score) => score.sourcePages.length > 0 && (score.type === 'chord'
+  ? !score.chordText.trim()
+  : score.sections.every((section) => section.measures.length === 0));
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [scores, setScores] = useState<Score[]>([]);
@@ -35,12 +39,12 @@ export default function HomePage() {
       <section className="import-shortcuts">
         <button onClick={() => navigate('/import?type=tab')}>
           <span className="shortcut-icon tab-icon"><FileMusic size={24} /></span>
-          <span><b>导入六线谱</b><small>识别图片，整理成清晰指弹谱</small></span>
+          <span><b>导入六线谱</b><small>多页原图导入，按页码整理</small></span>
           <ArrowRight size={18} />
         </button>
         <button onClick={() => navigate('/import?type=chord')}>
           <span className="shortcut-icon chord-icon"><ImagePlus size={24} /></span>
-          <span><b>导入弹唱谱</b><small>歌词和弦对应，点击查看指法</small></span>
+          <span><b>导入弹唱谱</b><small>保留原始图片，清晰翻看</small></span>
           <ArrowRight size={18} />
         </button>
       </section>
@@ -63,11 +67,11 @@ export default function HomePage() {
               <div className="score-info">
                 <div className="score-title-row"><h3>{score.title}</h3>{score.favorite && <Heart size={14} fill="currentColor" />}</div>
                 <p>{score.artist || '未知音乐人'}</p>
-                <div className="score-meta"><span>{score.musicalKey} 调</span><i />{score.capo > 0 ? <span>变调夹 {score.capo} 品</span> : <span>无需变调夹</span>}<i /><span>♩ {score.bpm}</span></div>
+                <div className="score-meta">{isImageOnly(score) ? <><span>原始图片</span><i /><span>共 {score.sourcePages.length} 页</span></> : <><span>{score.musicalKey} 调</span><i />{score.capo > 0 ? <span>变调夹 {score.capo} 品</span> : <span>无需变调夹</span>}<i /><span>♩ {score.bpm}</span></>}</div>
                 <div className="score-card-foot"><small>{score.sample ? '示例琴谱' : `更新于 ${formatDate(score.updatedAt)}`}</small></div>
                 <div className="score-entry-actions">
-                  <button onClick={() => navigate(`/score/${score.id}`)}><FileMusic size={15} />查看琴谱</button>
-                  {score.sourcePages.length > 0 && <button onClick={() => navigate(`/score/${score.id}?view=original`)}><FileImage size={15} />查看原图</button>}
+                  <button onClick={() => navigate(`/score/${score.id}${isImageOnly(score) ? '?view=original' : ''}`)}><FileMusic size={15} />查看琴谱</button>
+                  {score.sourcePages.length > 0 && !isImageOnly(score) && <button onClick={() => navigate(`/score/${score.id}?view=original`)}><FileImage size={15} />查看原图</button>}
                 </div>
               </div>
             </article>

@@ -11,7 +11,26 @@ export interface SourcePage {
 export interface TabMeasure {
   id: string;
   chord: string;
+  /** Legacy six-string data kept so existing saved scores still open. */
   strings: string[];
+  /** Structured notation: fret.string, e.g. 0.1 2.2 (0.3 1.2 2.3)/4. */
+  tab?: string;
+  /** Space-separated numbered notation, e.g. 0 5 6 1 2 3 2 1. */
+  melody?: string;
+  /** Space-separated lyric syllables aligned with the melody. */
+  lyric?: string;
+}
+
+export interface TabNote {
+  string: number;
+  fret: string;
+}
+
+export interface TabBeat {
+  notes: TabNote[];
+  duration: 1 | 2 | 4 | 8 | 16;
+  dotted: boolean;
+  technique?: 'h' | 'p' | 's';
 }
 
 export interface TabSection {

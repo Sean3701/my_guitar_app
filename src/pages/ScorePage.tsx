@@ -21,7 +21,14 @@ export default function ScorePage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { getScores().then((scores) => setScore(scores.find((item) => item.id === id) || null)); }, [id]);
+  useEffect(() => {
+    if (!score || !score.sourcePages.length) return;
+    const hasFormatted = score.type === 'chord' ? Boolean(score.chordText.trim()) : score.sections.some((section) => section.measures.length > 0);
+    if (!hasFormatted) setMode('original');
+  }, [score]);
   if (!score) return <div className="loading-state page"><span className="loading-ring" />正在翻开琴谱…</div>;
+
+  const hasFormattedScore = score.type === 'chord' ? Boolean(score.chordText.trim()) : score.sections.some((section) => section.measures.length > 0);
 
   const toggleFavorite = async () => {
     const next = { ...score, favorite: !score.favorite };
@@ -39,10 +46,10 @@ export default function ScorePage() {
 
   return (
     <div className="score-page">
-      <header className="score-header"><button className="icon-button" onClick={() => editing ? setEditing(false) : navigate(-1)}>{editing ? <X size={21} /> : <ArrowLeft size={21} />}</button><div><h1>{score.title}</h1><p>{score.artist || '未知音乐人'}</p></div><button className={`icon-button ${score.favorite ? 'favorite' : ''}`} onClick={toggleFavorite}><Heart size={20} fill={score.favorite ? 'currentColor' : 'none'} /></button><div className="more-wrap"><button className="icon-button" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={22} /></button>{menuOpen && <div className="more-menu"><button onClick={() => { setEditing(true); setMenuOpen(false); }}><Edit3 size={16} />编辑琴谱</button><button className="danger" onClick={remove}><Trash2 size={16} />删除琴谱</button></div>}</div></header>
+      <header className="score-header"><button className="icon-button" aria-label={editing ? '关闭编辑' : '返回首页'} onClick={() => editing ? setEditing(false) : navigate('/')}>{editing ? <X size={21} /> : <ArrowLeft size={21} />}</button><div><h1>{score.title}</h1><p>{score.artist || '未知音乐人'}</p></div><button className={`icon-button ${score.favorite ? 'favorite' : ''}`} onClick={toggleFavorite}><Heart size={20} fill={score.favorite ? 'currentColor' : 'none'} /></button><div className="more-wrap"><button className="icon-button" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={22} /></button>{menuOpen && <div className="more-menu">{hasFormattedScore && <button onClick={() => { setEditing(true); setMenuOpen(false); }}><Edit3 size={16} />编辑琴谱</button>}<button className="danger" onClick={remove}><Trash2 size={16} />删除琴谱</button></div>}</div></header>
       {editing ? <div className="page embedded-editor"><ScoreEditor initialScore={score} onSave={updateScore} /></div> : <>
         <div className="score-content page">
-          <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}><FileImage size={17} />{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div>
+          {hasFormattedScore ? <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}><FileImage size={17} />{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div> : <div className="image-score-summary"><FileImage size={18} /><span>{score.type === 'tab' ? '六线谱' : '弹唱谱'}原始图片</span><b>共 {score.sourcePages.length} 页</b></div>}
 
           {mode === 'original' && score.sourcePages.length ? <div className={`original-viewer ${originalLayout}`}>
             <div className="original-view-mode" aria-label="原图查看模式">
@@ -55,12 +62,12 @@ export default function ScorePage() {
             </> : <div className="original-scroll-pages">{score.sourcePages.map((page, index) => <figure className="original-scroll-page" key={page.id}><img src={page.dataUrl} alt={`原谱第${page.pageNumber}页`} loading={index === 0 ? 'eager' : 'lazy'} /><figcaption>第 {page.pageNumber} 页</figcaption></figure>)}</div>}
           </div> : <>
             {score.type === 'chord' && <div className="selected-chord-panel"><div><span>和弦指法</span><b>{selectedChord}</b><small>点击谱中和弦可切换</small></div><ChordDiagram name={selectedChord} showName={false} /></div>}
-            {score.type === 'tab' ? <TabStaff sections={score.sections} onChordClick={setSelectedChord} /> : <ChordSheet text={score.chordText} onChordClick={setSelectedChord} selectedChord={selectedChord} />}
+            {score.type === 'tab' ? <TabStaff sections={score.sections} timeSignature={score.timeSignature} musicalKey={score.musicalKey} onChordClick={setSelectedChord} /> : <ChordSheet text={score.chordText} onChordClick={setSelectedChord} selectedChord={selectedChord} />}
           </>}
           {score.type === 'tab' && mode === 'formatted' && <div className="tab-chord-dock"><span>当前和弦</span><ChordDiagram name={selectedChord} compact /><small>点击谱上和弦图可切换</small></div>}
-          <div className="playback-preview"><span className="play-icon"><Play size={20} fill="currentColor" /></span><div><b>自动弹奏与实时跟谱</b><p>播放引擎和位置指示器将在下一版接入</p></div><span>已预留</span></div>
+          {mode === 'formatted' && hasFormattedScore && <div className="playback-preview"><span className="play-icon"><Play size={20} fill="currentColor" /></span><div><b>自动弹奏与实时跟谱</b><p>播放引擎和位置指示器将在下一版接入</p></div><span>已预留</span></div>}
         </div>
-        <div className="score-bottom-bar"><button onClick={() => setEditing(true)}><Edit3 size={18} />编辑</button><button onClick={toggleFavorite} className={score.favorite ? 'favorite' : ''}><Heart size={18} fill={score.favorite ? 'currentColor' : 'none'} />收藏</button><button className="primary-button" onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')} disabled={!score.sourcePages.length}><FileImage size={18} />{mode === 'original' ? '返回琴谱' : '对照原谱'}</button></div>
+        <div className="score-bottom-bar">{hasFormattedScore && <button onClick={() => setEditing(true)}><Edit3 size={18} />编辑</button>}<button onClick={toggleFavorite} className={score.favorite ? 'favorite' : ''}><Heart size={18} fill={score.favorite ? 'currentColor' : 'none'} />收藏</button>{hasFormattedScore ? <button className="primary-button" onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')} disabled={!score.sourcePages.length}><FileImage size={18} />{mode === 'original' ? '返回琴谱' : '对照原谱'}</button> : <button className="primary-button" onClick={() => navigate('/')}><ArrowLeft size={18} />返回谱架</button>}</div>
       </>}
     </div>
   );
