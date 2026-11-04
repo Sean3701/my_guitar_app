@@ -59,7 +59,7 @@ export default function HomePage() {
       {loading ? <div className="loading-state"><span className="loading-ring" />正在整理谱架…</div> : (
         <div className="score-list">
           {filtered.map((score) => (
-            <article className="score-card" key={score.id}>
+            <article className="score-card" key={score.id} onClick={() => navigate(`/score/${score.id}${isImageOnly(score) ? '?view=original' : ''}`)}>
               <div className={`score-cover ${score.type}`}>
                 {score.type === 'tab' ? <div className="mini-tab">{Array.from({ length: 6 }, (_, index) => <i key={index} />)}<b>3</b><b>0</b><b>×</b></div> : <div className="mini-chords"><span>C</span><span>G</span><span>Am</span><i /><i /></div>}
                 <span className="score-type-badge">{score.type === 'tab' ? '六线谱' : '弹唱谱'}</span>
@@ -69,11 +69,9 @@ export default function HomePage() {
                 <p>{score.artist || '未知音乐人'}</p>
                 <div className="score-meta">{isImageOnly(score) ? <><span>原始图片</span><i /><span>共 {score.sourcePages.length} 页</span></> : <><span>{score.musicalKey} 调</span><i />{score.capo > 0 ? <span>变调夹 {score.capo} 品</span> : <span>无需变调夹</span>}<i /><span>♩ {score.bpm}</span></>}</div>
                 <div className="score-card-foot"><small>{score.sample ? '示例琴谱' : `更新于 ${formatDate(score.updatedAt)}`}</small></div>
-                <div className="score-entry-actions">
-                  <button onClick={() => navigate(`/score/${score.id}${isImageOnly(score) ? '?view=original' : ''}`)}><FileMusic size={15} />查看琴谱</button>
-                  {score.sourcePages.length > 0 && !isImageOnly(score) && <button onClick={() => navigate(`/score/${score.id}?view=original`)}><FileImage size={15} />查看原图</button>}
-                </div>
+                {score.sourcePages.length > 0 && !isImageOnly(score) && <div className="score-entry-actions"><button onClick={(event) => { event.stopPropagation(); navigate(`/score/${score.id}?view=original`); }}><FileImage size={15} />查看原图</button></div>}
               </div>
+              <ArrowRight className="card-arrow" size={18} aria-hidden />
             </article>
           ))}
           {!filtered.length && <div className="empty-state"><Music2 size={34} /><h3>这里还没有琴谱</h3><p>导入几张清晰的琴谱照片，开始整理吧。</p><button className="primary-button" onClick={() => navigate('/import')}>导入第一份琴谱</button></div>}

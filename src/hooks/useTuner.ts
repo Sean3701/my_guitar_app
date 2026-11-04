@@ -44,6 +44,11 @@ export function useTuner() {
     contextRef.current = context;
     engineRef.current = engine;
     engine.onFrequency = (detected) => setFrequency(detected && detected >= 55 && detected <= 450 ? detected : null);
+    engine.onError = (message) => {
+      console.error('FastTune runtime error', message);
+      stop();
+      setError('调音引擎运行异常，请重新开启麦克风。');
+    };
 
     try {
       await context.resume();

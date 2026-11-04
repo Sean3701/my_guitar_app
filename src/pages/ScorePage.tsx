@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Edit3, FileImage, Heart, MoreHorizontal, Play, Trash2, X } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Score } from '../types';
 import { deleteScore, getScores, saveScore } from '../lib/storage';
+import { usePageImages } from '../hooks/usePageImages';
 import ChordDiagram from '../components/ChordDiagram';
 import ChordSheet from '../components/ChordSheet';
 import TabStaff from '../components/TabStaff';
@@ -21,14 +22,26 @@ export default function ScorePage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => { getScores().then((scores) => setScore(scores.find((item) => item.id === id) || null)); }, [id]);
+  useEffect(() => { setPageIndex(0); }, [score?.id]);
   useEffect(() => {
     if (!score || !score.sourcePages.length) return;
     const hasFormatted = score.type === 'chord' ? Boolean(score.chordText.trim()) : score.sections.some((section) => section.measures.length > 0);
     if (!hasFormatted) setMode('original');
   }, [score]);
+
+  const pageIds = useMemo(() => {
+    if (!score) return [];
+    if (originalLayout === 'scroll') return score.sourcePages.map((page) => page.id);
+    const current = score.sourcePages[pageIndex];
+    return current ? [current.id] : [];
+  }, [score, originalLayout, pageIndex]);
+  const pageUrls = usePageImages(pageIds);
+
   if (!score) return <div className="loading-state page"><span className="loading-ring" />正在翻开琴谱…</div>;
 
   const hasFormattedScore = score.type === 'chord' ? Boolean(score.chordText.trim()) : score.sections.some((section) => section.measures.length > 0);
+  const currentPage = score.sourcePages[pageIndex];
+  const currentPageUrl = currentPage ? pageUrls[currentPage.id] : undefined;
 
   const toggleFavorite = async () => {
     const next = { ...score, favorite: !score.favorite };
@@ -57,9 +70,11 @@ export default function ScorePage() {
               <button className={originalLayout === 'scroll' ? 'active' : ''} onClick={() => changeOriginalLayout('scroll')}>滚动看图</button>
             </div>
             {originalLayout === 'paged' ? <>
-              <img className="original-paged-image" src={score.sourcePages[pageIndex]?.dataUrl} alt={`原谱第${pageIndex + 1}页`} />
+              {currentPageUrl
+                ? <img className="original-paged-image" src={currentPageUrl} alt={`原谱第${pageIndex + 1}页`} />
+                : <div className="original-placeholder"><span className="loading-ring" />正在打开第 {pageIndex + 1} 页…</div>}
               <div className="original-page-controls"><button disabled={pageIndex === 0} onClick={() => setPageIndex(pageIndex - 1)}><ChevronLeft size={18} /></button><span>{pageIndex + 1} / {score.sourcePages.length}</span><button disabled={pageIndex === score.sourcePages.length - 1} onClick={() => setPageIndex(pageIndex + 1)}><ChevronRight size={18} /></button></div>
-            </> : <div className="original-scroll-pages">{score.sourcePages.map((page, index) => <figure className="original-scroll-page" key={page.id}><img src={page.dataUrl} alt={`原谱第${page.pageNumber}页`} loading={index === 0 ? 'eager' : 'lazy'} /><figcaption>第 {page.pageNumber} 页</figcaption></figure>)}</div>}
+            </> : <div className="original-scroll-pages">{score.sourcePages.map((page, index) => <figure className="original-scroll-page" key={page.id}>{pageUrls[page.id] ? <img src={pageUrls[page.id]} alt={`原谱第${page.pageNumber}页`} loading={index === 0 ? 'eager' : 'lazy'} /> : <div className="original-placeholder"><span className="loading-ring" />正在打开第 {page.pageNumber} 页…</div>}<figcaption>第 {page.pageNumber} 页</figcaption></figure>)}</div>}
           </div> : <>
             {score.type === 'chord' && <div className="selected-chord-panel"><div><span>和弦指法</span><b>{selectedChord}</b><small>点击谱中和弦可切换</small></div><ChordDiagram name={selectedChord} showName={false} /></div>}
             {score.type === 'tab' ? <TabStaff sections={score.sections} timeSignature={score.timeSignature} musicalKey={score.musicalKey} onChordClick={setSelectedChord} /> : <ChordSheet text={score.chordText} onChordClick={setSelectedChord} selectedChord={selectedChord} />}

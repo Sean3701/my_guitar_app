@@ -3,9 +3,12 @@ export type ScoreType = 'tab' | 'chord';
 export interface SourcePage {
   id: string;
   name: string;
-  dataUrl: string;
   pageNumber: number;
   text: string;
+  /** 列表与导入页使用的小图（data URL，几十 KB），原图存在 pageImages 表里 */
+  thumbnail?: string;
+  /** 旧版本内联的原图，读取时会迁移到 pageImages 表并从记录中移除 */
+  dataUrl?: string;
 }
 
 export interface TabMeasure {
@@ -66,7 +69,9 @@ export interface ChordPosition {
 
 export interface ImportPage {
   id: string;
-  file: File;
+  /** 压缩后的原图，保存时写入 pageImages 表 */
+  image: Blob;
+  /** 缩略图 data URL，同时用作导入页预览 */
   preview: string;
   name: string;
   pageNumber: number;

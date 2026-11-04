@@ -3,3 +3,4 @@ dist/
 *.tsbuildinfo
 .workbuddy/validation/
 .workbuddy/reference/
+dist-check/

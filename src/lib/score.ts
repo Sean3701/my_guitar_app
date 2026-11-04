@@ -80,13 +80,6 @@ export function emptyScore(type: ScoreType, title = '未命名琴谱'): Score {
   };
 }
 
-export const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result as string);
-  reader.onerror = reject;
-  reader.readAsDataURL(file);
-});
-
 export function formatDate(timestamp: number) {
   const date = new Date(timestamp);
   const now = new Date();

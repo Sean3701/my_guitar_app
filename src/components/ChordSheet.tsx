@@ -1,6 +1,3 @@
-import { Fragment } from 'react';
-import { uid } from '../lib/score';
-
 interface Props {
   text: string;
   onChordClick: (chord: string) => void;

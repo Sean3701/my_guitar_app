@@ -12,15 +12,17 @@ interface FastTuneModule {
 let engine: FastTuneModule | null = null;
 let pointer = 0;
 let capacity = 0;
+// 子路径部署时 wasm/glue 位于 <base>fasttune/ 下
+const engineBase = `${import.meta.env.BASE_URL}fasttune/`;
 
 self.onmessage = async (event: MessageEvent) => {
   try {
     if (event.data.type === 'init') {
-      const factoryPath = '/fasttune/fasttune.js';
+      const factoryPath = `${engineBase}fasttune.js`;
       // Load the prebuilt public glue untouched; bundlers must not rewrite this import.
       const loadPublicModule = new Function('path', 'return import(path)') as (path: string) => Promise<{ default: (options: object) => Promise<FastTuneModule> }>;
       const { default: createModule } = await loadPublicModule(factoryPath);
-      engine = await createModule({ locateFile: (path: string) => `/fasttune/${path}` });
+      engine = await createModule({ locateFile: (path: string) => `${engineBase}${path}` });
       if (engine._ft_init(event.data.sampleRate) !== 0) throw new Error('FastTune initialization failed');
       self.postMessage({ type: 'ready' });
       return;

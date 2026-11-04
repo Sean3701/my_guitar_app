@@ -50,7 +50,7 @@ export default function TunerPage() {
 
         <div className="fasttune-headstock-area">
           <div className="fasttune-string-list left">{[2, 1, 0].map(stringButton)}</div>
-          <div className="fasttune-headstock"><img src="/images/guitar-headstock.webp" alt="半写实、对称的木吉他琴头" draggable="false" /></div>
+          <div className="fasttune-headstock"><img src={`${import.meta.env.BASE_URL}images/guitar-headstock.webp`} alt="半写实、对称的木吉他琴头" draggable="false" /></div>
           <div className="fasttune-string-list right">{[3, 4, 5].map(stringButton)}</div>
         </div>
       </section>
