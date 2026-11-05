@@ -7,9 +7,8 @@ import type { Score, ScoreType } from '../types';
 
 type Filter = 'all' | ScoreType | 'favorite';
 
-const isImageOnly = (score: Score) => score.sourcePages.length > 0 && (score.type === 'chord'
-  ? !score.chordText.trim()
-  : score.sections.every((section) => section.measures.length === 0));
+// 六线谱只保留导入的原图；弹唱谱没有文本时同样是原图模式
+const isImageOnly = (score: Score) => score.sourcePages.length > 0 && (score.type === 'tab' || !score.chordText.trim());
 
 export default function HomePage() {
   const navigate = useNavigate();

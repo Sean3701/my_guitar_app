@@ -1,10 +1,13 @@
 import { openDB } from 'idb';
 import type { Score, SourcePage } from '../types';
 import { demoScores } from '../data/demo';
+import { createSampleScore, samplePages, sampleScoreId } from '../data/sampleScore';
 import { prepareImage } from './image';
 
 const DB_NAME = 'shipu-guitar';
 const DB_VERSION = 2;
+const SAMPLE_SCORE_KEY = 'shipu-sample-like-a-star-v1';
+const SAMPLE_IMAGE_KEY = 'shipu-sample-like-a-star-images-v1';
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
@@ -43,6 +46,17 @@ async function migrateInlineImages(scores: Score[]): Promise<Score[]> {
   return migrated;
 }
 
+/** 示例琴谱的原图打包在 public 里，首次启动写入 IndexedDB，之后离线也能翻看 */
+async function cacheSamplePages(): Promise<void> {
+  const db = await dbPromise;
+  for (const page of samplePages) {
+    if (await db.get('pageImages', page.id)) continue;
+    const response = await fetch(page.file);
+    if (!response.ok) throw new Error(`示例图片加载失败：${page.file} (${response.status})`);
+    await db.put('pageImages', await response.blob(), page.id);
+  }
+}
+
 export async function getScores(): Promise<Score[]> {
   const db = await dbPromise;
   if (!localStorage.getItem('shipu-initialized')) {
@@ -50,14 +64,35 @@ export async function getScores(): Promise<Score[]> {
     localStorage.setItem('shipu-initialized', 'true');
   }
   let scores = await db.getAll('scores') as Score[];
-  if (!localStorage.getItem('shipu-readable-tab-v1')) {
+  if (!localStorage.getItem('shipu-image-only-v1')) {
     for (const demo of demoScores) {
       const existing = scores.find((score) => score.id === demo.id);
       if (!existing || existing.sample) await db.put('scores', { ...demo, favorite: existing?.favorite ?? demo.favorite });
     }
-    localStorage.setItem('shipu-readable-tab-v1', 'true');
+    // 六线谱只保留原图查看：清掉没有原图的旧示例，避免打开空白谱
+    const demoIds = new Set([...demoScores.map((demo) => demo.id), sampleScoreId]);
+    for (const score of scores) {
+      if (score.sample && !demoIds.has(score.id)) await db.delete('scores', score.id);
+    }
+    localStorage.setItem('shipu-image-only-v1', 'true');
     scores = await db.getAll('scores') as Score[];
   }
+
+  // 内置示例《Like A Star》：只注入一次，用户自己删掉后不再自动回来
+  if (!localStorage.getItem(SAMPLE_SCORE_KEY)) {
+    const imagesReady = await cacheSamplePages().then(() => true).catch((error) => {
+      console.warn('示例琴谱图片缓存失败，下次启动会重试', error);
+      return false;
+    });
+    if (imagesReady) localStorage.setItem(SAMPLE_IMAGE_KEY, 'true');
+    if (!scores.some((score) => score.id === sampleScoreId)) await db.put('scores', createSampleScore());
+    localStorage.setItem(SAMPLE_SCORE_KEY, 'true');
+    scores = await db.getAll('scores') as Score[];
+  } else if (!localStorage.getItem(SAMPLE_IMAGE_KEY)) {
+    // 上次图片没缓存成功（例如首次启动时离线），这里补一次
+    cacheSamplePages().then(() => localStorage.setItem(SAMPLE_IMAGE_KEY, 'true')).catch(() => {});
+  }
+
   scores = await migrateInlineImages(scores);
   return scores.sort((a, b) => b.updatedAt - a.updatedAt);
 }
