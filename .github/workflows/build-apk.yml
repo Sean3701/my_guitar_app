@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -47,3 +49,15 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
           if-no-files-found: error
+
+      # 把 APK 直接挂到固定 Release，手机浏览器免登录下载安装
+      - name: 发布 APK 到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: 拾谱 APK（最新构建）
+          body: 每次推送代码后自动更新。下载 app-debug.apk 直接安装。
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
