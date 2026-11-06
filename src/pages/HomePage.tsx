@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, FileImage, FileMusic, Guitar, Heart, ImagePlus, Music2, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, FileImage, Guitar, Heart, Music2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getScores } from '../lib/storage';
 import { formatDate } from '../lib/score';
@@ -34,19 +34,6 @@ export default function HomePage() {
         <button className="icon-button search-trigger" onClick={() => setSearchOpen(!searchOpen)} aria-label="搜索"><Search size={21} /></button>
       </header>
       {searchOpen && <div className="search-box"><Search size={18} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索歌名或音乐人" /><button onClick={() => { setQuery(''); setSearchOpen(false); }}><X size={17} /></button></div>}
-
-      <section className="import-shortcuts">
-        <button onClick={() => navigate('/import?type=tab')}>
-          <span className="shortcut-icon tab-icon"><FileMusic size={24} /></span>
-          <span><b>导入六线谱</b><small>多页原图导入，按页码整理</small></span>
-          <ArrowRight size={18} />
-        </button>
-        <button onClick={() => navigate('/import?type=chord')}>
-          <span className="shortcut-icon chord-icon"><ImagePlus size={24} /></span>
-          <span><b>导入弹唱谱</b><small>保留原始图片，清晰翻看</small></span>
-          <ArrowRight size={18} />
-        </button>
-      </section>
 
       <div className="library-heading"><div><h2>谱架</h2><span>{scores.length} 份琴谱</span></div><button aria-label="筛选"><SlidersHorizontal size={18} /></button></div>
       <div className="filter-tabs">
