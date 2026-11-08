@@ -58,6 +58,6 @@ jobs:
           name: 拾谱 APK（最新构建）
           body: 每次推送代码后自动更新。下载 app-debug.apk 直接安装。
           files: android/app/build/outputs/apk/debug/app-debug.apk
-          prerelease: true
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
