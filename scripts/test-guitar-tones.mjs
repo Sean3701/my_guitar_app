@@ -1,9 +1,20 @@
-import { readFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
-import createModule from '../public/fasttune/fasttune.js';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+/**
+ * 校验 public/audio 里六段标准音采样的实际音高。
+ * 用线上同一套 YIN 内核（src/lib/pitch.ts）测量，避免「测试引擎与被测引擎不一致」。
+ */
 
 const root = resolve(import.meta.dirname, '..');
-const module = await createModule({ locateFile: (path) => join(root, 'public', 'fasttune', path) });
+const outDir = mkdtempSync(join(tmpdir(), 'tone-test-'));
+const bundle = join(outDir, 'pitch.mjs');
+execFileSync(process.execPath, [join(root, 'node_modules', 'esbuild', 'bin', 'esbuild'), join(root, 'src', 'lib', 'pitch.ts'), '--bundle', '--format=esm', '--outfile=' + bundle], { stdio: 'inherit' });
+const { analyzePitch } = await import(pathToFileURL(bundle).href);
+
 const strings = [
   ['6弦 E2', 82.41, 'e2'], ['5弦 A2', 110, 'a2'],
   ['4弦 D3', 146.83, 'd3'], ['3弦 G3', 196, 'g3'],
@@ -26,30 +37,14 @@ function readWave(name) {
   return { samples, sampleRate };
 }
 
-function resample(input, rate) {
-  const output = new Float32Array(Math.floor(input.length / rate));
-  for (let index = 0; index < output.length; index++) {
-    const position = index * rate;
-    const left = Math.floor(position);
-    const fraction = position - left;
-    output[index] = (input[left] || 0) * (1 - fraction) + (input[left + 1] || 0) * fraction;
-  }
-  return output;
-}
-
 let failed = false;
 for (const [label, target, sampleName] of strings) {
   const { samples, sampleRate } = readWave(sampleName);
-  const adjusted = resample(samples, 1);
-  module._ft_init(sampleRate);
-  const pointer = module._malloc(adjusted.length * 4);
-  module.HEAPF32.set(adjusted, pointer / 4);
-  const actual = module._ft_detect(pointer, adjusted.length);
-  module._free(pointer);
-  module._ft_destroy();
-  const cents = 1200 * Math.log2(actual / target);
-  const passed = Math.abs(cents) <= 30;
-  console.log(`${passed ? 'PASS' : 'FAIL'} ${label}: ${actual.toFixed(2)} Hz / target ${target} Hz / ${cents >= 0 ? '+' : ''}${cents.toFixed(1)} cents`);
+  const { frequency, clarity } = analyzePitch(samples, sampleRate);
+  const cents = frequency ? 1200 * Math.log2(frequency / target) : Infinity;
+  const passed = Number.isFinite(cents) && Math.abs(cents) <= 10;
+  console.log(`${passed ? 'PASS' : 'FAIL'} ${label}: ${frequency ? frequency.toFixed(2) : '未检出'} Hz / target ${target} Hz / ${cents >= 0 ? '+' : ''}${cents.toFixed(1)} cents / clarity ${clarity.toFixed(2)} / ${(samples.length / sampleRate).toFixed(2)}s`);
   if (!passed) failed = true;
 }
+rmSync(outDir, { recursive: true, force: true });
 if (failed) process.exit(1);

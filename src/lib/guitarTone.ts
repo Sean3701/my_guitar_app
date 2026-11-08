@@ -2,11 +2,11 @@ import { GUITAR_STRINGS } from '../hooks/useTuner';
 
 /**
  * 六弦采样（public/audio/guitar-*.wav）的实测基频，单位 Hz。
- * 由 `npm run test:guitar-tones` 逐弦测得；采样本身偏离标准音 16~28 音分，
- * 播放时用 playbackRate 校正，避免「标准音」听起来偏高。
+ * 由 `npm run test:guitar-tones` 用调音器同一套 YIN 内核测得，实测偏离标准音 0~8 音分，
+ * 播放时仍按 目标/实测 微调 playbackRate，把残余偏差抹掉。
  * 更换音频文件后需要重新测量并更新此表。
  */
-const MEASURED_FREQUENCY = [83.66, 111.77, 148.72, 197.89, 249.53, 334.35];
+const MEASURED_FREQUENCY = [82.78, 110, 146.98, 196.27, 247.07, 329.94];
 
 const SAMPLE_URLS = ['e2', 'a2', 'd3', 'g3', 'b3', 'e4']
   .map((note) => `${import.meta.env.BASE_URL}audio/guitar-${note}.wav`);
