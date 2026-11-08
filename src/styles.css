@@ -163,15 +163,19 @@ img { display: block; max-width: 100%; }
 .image-score-summary { padding: 17px 4px 20px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 12px; }.image-score-summary svg { color: var(--accent); }.image-score-summary b { margin-left: auto; color: var(--ink); font-size: 12px; font-weight: 500; }
 .score-properties { position: relative; display: flex; align-items: center; gap: 23px; padding: 17px 4px 20px; border-bottom: 1px solid var(--border); }.score-properties > button:not(.original-toggle) { padding: 0; text-align: left; }.score-properties b { display: block; font-size: 20px; }.score-properties span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }.score-properties > i { width: 1px; height: 28px; background: var(--border); }.original-toggle { margin-left: auto; padding: 8px 10px; display: flex; align-items: center; gap: 5px; border-radius: 8px; color: var(--muted); background: var(--soft); font-size: 10px; }.original-toggle.active { color: var(--accent); background: var(--accent-soft); }
 .original-viewer { padding-top: 18px; }
-.original-view-mode { width: 230px; margin: 0 auto 16px; padding: 4px; display: flex; border-radius: 11px; background: var(--soft); }
+.original-view-mode { width: 230px; padding: 4px; display: flex; border-radius: 11px; background: var(--soft); }
 .original-view-mode button { flex: 1; height: 32px; border-radius: 8px; color: var(--muted); font-size: 11px; }
 .original-view-mode button.active { color: var(--accent-dark); background: var(--surface); box-shadow: 0 2px 7px rgba(30,30,20,.06); font-weight: 600; }
-.original-paged-image, .original-scroll-page img { width: 100%; border-radius: 8px; background: #fff; box-shadow: var(--shadow); }
+/* 可缩放看谱容器：图片按屏宽铺满，双指/双击可放大到 5× */
+.zoomable { position: relative; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: var(--shadow); touch-action: pan-y; }
+.zoomable.zoomed { touch-action: none; }
+.zoomable img { display: block; width: 100%; height: auto; transform-origin: 0 0; will-change: transform; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-user-drag: none; border-radius: inherit; }
 .original-page-controls { margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 20px; color: var(--muted); font-size: 12px; }
 .original-page-controls button { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); }
 .original-scroll-pages { display: grid; gap: 20px; }
-.original-scroll-page { margin: 0; }
-.original-scroll-page figcaption { margin-top: 8px; text-align: center; color: var(--muted); font-size: 10px; }
+.original-scroll-page { position: relative; margin: 0; }
+.original-toolbar { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.original-page-count { flex: none; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .original-placeholder { min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 8px; border: 1px dashed var(--border); background: var(--surface); color: var(--muted); font-size: 12px; }
 .empty-image-state { margin-top: 18px; padding: 56px 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; border-radius: 12px; border: 1px dashed var(--border); background: var(--surface); color: var(--muted); }
 .empty-image-state svg { color: var(--accent); }
@@ -237,6 +241,12 @@ img { display: block; max-width: 100%; }
   .editor-save-bar > span { display: none; }.editor-save-bar .primary-button { width: 100%; }.editor-save-bar { padding: 9px; bottom: 75px; }.string-edit-grid { grid-template-columns: 1fr; }
   .score-header { height: 70px; padding: 10px 8px; }.score-content { padding-top: 0; }.score-properties { gap: 17px; }.score-properties b { font-size: 17px; }.original-toggle { padding: 7px; font-size: 0; }.original-toggle svg { width: 18px; }.selected-chord-panel { min-height: 126px; margin-top: 13px; padding: 8px 17px; }.selected-chord-panel .chord-diagram { width: 85px; }.selected-chord-panel > div:first-child > b { font-size: 30px; }
   .tab-chord-dock small { display: none; }.lyric-line { font-size: 14px; }.chord-row button { font-size: 13px; }.chord-sheet { padding-bottom: 10px; }
+  /* 手机上把谱图铺到屏幕两侧，把有限的宽度全给谱面 */
+  .original-viewer { margin: 0 -16px; }.original-scroll-pages { gap: 8px; }.zoomable { border-radius: 0; box-shadow: none; }
+  /* 单页模式的翻页控件改成悬浮胶囊，否则会被底部固定栏压住 */
+  .original-viewer.paged .original-page-controls { position: fixed; z-index: 26; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); margin: 0; padding: 6px 10px; gap: 14px; transform: translateX(-50%); border-radius: 999px; background: rgba(28,34,30,.86); color: #e9efe9; box-shadow: 0 8px 24px rgba(0,0,0,.22); backdrop-filter: blur(10px); }
+  .original-viewer.paged .original-page-controls button { width: 32px; height: 32px; border: 0; background: rgba(255,255,255,.12); color: inherit; }
+  .original-viewer.paged .original-page-controls button:disabled { opacity: .3; }
 }
 
 @media (max-width: 600px) {
