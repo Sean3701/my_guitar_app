@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, FileImage, Guitar, Heart, Music2, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, FileText, Guitar, Heart, Music2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getScores } from '../lib/storage';
 import { formatDate } from '../lib/score';
@@ -7,8 +7,9 @@ import type { Score, ScoreType } from '../types';
 
 type Filter = 'all' | ScoreType | 'favorite';
 
-// 六线谱只保留导入的原图；弹唱谱没有文本时同样是原图模式
-const isImageOnly = (score: Score) => score.sourcePages.length > 0 && (score.type === 'tab' || !score.chordText.trim());
+// 六线谱和弹唱谱都先看导入的原图；弹唱谱有和弦文本时额外给一个格式谱入口
+const hasImages = (score: Score) => score.sourcePages.length > 0;
+const hasChordSheet = (score: Score) => score.type === 'chord' && Boolean(score.chordText.trim());
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function HomePage() {
       {loading ? <div className="loading-state"><span className="loading-ring" />正在整理谱架…</div> : (
         <div className="score-list">
           {filtered.map((score) => (
-            <article className="score-card" key={score.id} onClick={() => navigate(`/score/${score.id}${isImageOnly(score) ? '?view=original' : ''}`)}>
+            <article className="score-card" key={score.id} onClick={() => navigate(`/score/${score.id}`)}>
               <div className={`score-cover ${score.type}`}>
                 {score.type === 'tab' ? <div className="mini-tab">{Array.from({ length: 6 }, (_, index) => <i key={index} />)}<b>3</b><b>0</b><b>×</b></div> : <div className="mini-chords"><span>C</span><span>G</span><span>Am</span><i /><i /></div>}
                 <span className="score-type-badge">{score.type === 'tab' ? '六线谱' : '弹唱谱'}</span>
@@ -53,9 +54,9 @@ export default function HomePage() {
               <div className="score-info">
                 <div className="score-title-row"><h3>{score.title}</h3>{score.favorite && <Heart size={14} fill="currentColor" />}</div>
                 <p>{score.artist || '未知音乐人'}</p>
-                <div className="score-meta">{isImageOnly(score) ? <><span>原始图片</span><i /><span>共 {score.sourcePages.length} 页</span></> : <><span>{score.musicalKey} 调</span><i />{score.capo > 0 ? <span>变调夹 {score.capo} 品</span> : <span>无需变调夹</span>}<i /><span>♩ {score.bpm}</span></>}</div>
+                <div className="score-meta">{hasImages(score) ? <><span>原始图片</span><i /><span>共 {score.sourcePages.length} 页</span></> : <><span>{score.musicalKey} 调</span><i />{score.capo > 0 ? <span>变调夹 {score.capo} 品</span> : <span>无需变调夹</span>}<i /><span>♩ {score.bpm}</span></>}</div>
                 <div className="score-card-foot"><small>{score.sample ? '示例琴谱' : `更新于 ${formatDate(score.updatedAt)}`}</small></div>
-                {score.sourcePages.length > 0 && !isImageOnly(score) && <div className="score-entry-actions"><button onClick={(event) => { event.stopPropagation(); navigate(`/score/${score.id}?view=original`); }}><FileImage size={15} />查看原图</button></div>}
+                {hasImages(score) && hasChordSheet(score) && <div className="score-entry-actions"><button onClick={(event) => { event.stopPropagation(); navigate(`/score/${score.id}?view=formatted`); }}><FileText size={15} />查看格式谱</button></div>}
               </div>
               <ArrowRight className="card-arrow" size={18} aria-hidden />
             </article>
