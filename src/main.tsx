@@ -3,7 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ensureSafeAreaTop } from './lib/safe-area';
 import './styles.css';
+
+ensureSafeAreaTop();
 
 const baseUrl = import.meta.env.BASE_URL;
 const basename = baseUrl.replace(/\/$/, '') || '/';
