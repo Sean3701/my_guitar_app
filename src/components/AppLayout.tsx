@@ -23,7 +23,7 @@ export default function AppLayout() {
       {!isDetail && (
         <nav className="bottom-nav">
           <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''}><House size={21} /><span>琴谱</span></NavLink>
-          <NavLink to="/import" className={({ isActive }) => `import-nav ${isActive ? 'active' : ''}`}><span className="import-chip"><Import size={20} /></span><span>导入</span></NavLink>
+          <NavLink to="/import" className={({ isActive }) => isActive ? 'active' : ''}><Import size={21} /><span>导入</span></NavLink>
           <NavLink to="/chords" className={({ isActive }) => isActive ? 'active' : ''}><LayoutGrid size={21} /><span>和弦库</span></NavLink>
           <NavLink to="/tuner" className={({ isActive }) => isActive ? 'active' : ''}><Music2 size={21} /><span>调音器</span></NavLink>
         </nav>
