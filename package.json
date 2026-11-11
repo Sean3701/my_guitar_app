@@ -9,6 +9,7 @@
     "test:pitch": "node scripts/test-pitch.mjs",
     "test:guitar-tones": "node scripts/test-guitar-tones.mjs",
     "build:audio": "python scripts/build-guitar-samples.py",
+    "check:chords": "node scripts/check-chords.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "cap:sync": "npm run build && npx cap sync android"
   },

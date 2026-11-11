@@ -15,6 +15,9 @@ const players = new Map<string, HTMLAudioElement>();
 let currentPlayer: HTMLAudioElement | null = null;
 /** 上一次播放的收尾回调：被新的点击打断时，用它让上一个 Promise 立即结束 */
 let currentFinish: (() => void) | null = null;
+/** 和弦试听会同时占用六根弦的采样，停声时要一起收掉 */
+let chordVoices: HTMLAudioElement[] = [];
+let chordTimers: number[] = [];
 
 type PitchPreservingAudio = HTMLAudioElement & {
   mozPreservesPitch?: boolean;
@@ -46,6 +49,10 @@ export function stopGuitarTone() {
   currentFinish = null;
   currentPlayer?.pause();
   currentPlayer = null;
+  for (const timer of chordTimers) window.clearTimeout(timer);
+  chordTimers = [];
+  for (const voice of chordVoices) voice.pause();
+  chordVoices = [];
   finish?.();
 }
 
@@ -93,5 +100,43 @@ export function playGuitarTone(stringIndex: number): Promise<void> {
     player.onerror = finish;
     // 播放被浏览器拒绝（如自动播放策略）时也要收尾，避免按钮一直停在「发声」状态
     player.play().catch(finish);
+  });
+}
+
+/**
+ * 扫弦试听和弦。
+ * 六段采样只有空弦音，靠 playbackRate 把每根弦送到它该在的品上，
+ * 再按 30~60ms 的间隔依次发声，听起来就是一次顺扫。
+ * frets 顺序与琴弦一致（6 弦 → 1 弦），-1 表示不弹。
+ */
+export function playChord(frets: number[], options: { strum?: number } = {}): Promise<void> {
+  stopGuitarTone();
+  const strum = options.strum ?? 52;
+  const notes = frets
+    .map((fret, index) => ({ fret, index }))
+    .filter((note) => note.fret >= 0 && GUITAR_STRINGS[note.index]);
+  if (!notes.length) return Promise.resolve();
+
+  const volume = Math.min(0.42, 1.5 / notes.length);
+  notes.forEach((note, order) => {
+    const player = getPlayer(SAMPLE_URLS[note.index]);
+    const pitched = player as PitchPreservingAudio;
+    // 关掉保音高，变速才会同时改变音高，这正是移调需要的行为
+    pitched.preservesPitch = false;
+    pitched.mozPreservesPitch = false;
+    pitched.webkitPreservesPitch = false;
+    const target = GUITAR_STRINGS[note.index].frequency * 2 ** (note.fret / 12);
+    player.playbackRate = target / MEASURED_FREQUENCY[note.index];
+    player.volume = volume;
+    chordVoices.push(player);
+    chordTimers.push(window.setTimeout(() => {
+      player.currentTime = 0;
+      player.play().catch(() => {});
+    }, order * strum));
+  });
+
+  // 采样尾音大约 1 秒，按扫弦长度估算一个收尾时间，让界面能恢复按钮状态
+  return new Promise((resolve) => {
+    chordTimers.push(window.setTimeout(resolve, notes.length * strum + 900));
   });
 }

@@ -57,12 +57,12 @@ img { display: block; max-width: 100%; }
 
 /* Navigation */
 .desktop-rail { display: none; }
-.bottom-nav { position: fixed; z-index: 30; bottom: 0; left: 0; right: 0; width: 100%; max-width: 100vw; height: calc(68px + env(safe-area-inset-bottom)); padding: 8px max(18px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(18px, env(safe-area-inset-left)); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: rgba(255, 255, 255, .96); border-top: 1px solid var(--border); backdrop-filter: blur(18px); }
-.bottom-nav > a { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #92958f; font-size: 11px; }
+.bottom-nav { position: fixed; z-index: 30; bottom: 0; left: 0; right: 0; width: 100%; max-width: 100vw; height: calc(68px + env(safe-area-inset-bottom)); padding: 8px max(14px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(14px, env(safe-area-inset-left)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: rgba(255, 255, 255, .96); border-top: 1px solid var(--border); backdrop-filter: blur(18px); }
+.bottom-nav > a { min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #92958f; font-size: 10px; }
 .bottom-nav > a.active { color: var(--accent); }
-.bottom-nav .import-nav { margin-top: -25px; }
-.import-circle { width: 48px; height: 48px; border-radius: 17px; display: grid; place-items: center; color: #fff; background: var(--accent); box-shadow: 0 7px 20px rgba(232, 115, 97, .28); }
-.bottom-nav .import-nav.active .import-circle { background: var(--accent-dark); }
+/* 导入是唯一的「写」操作，用一块实心强调色和其他入口区分开 */
+.import-chip { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--accent); box-shadow: 0 5px 14px rgba(232, 115, 97, .24); transition: .18s ease; }
+.bottom-nav .import-nav.active .import-chip { background: var(--accent-dark); }
 
 /* Home */
 .home-header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 18px; margin-bottom: 24px; }
@@ -203,7 +203,18 @@ img { display: block; max-width: 100%; }
 .empty-image-state h3 { color: var(--ink); font-size: 15px; }
 .empty-image-state p { max-width: 260px; font-size: 12px; line-height: 1.7; }
 .import-notice { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; color: #8b5a2b; background: #fdf1e1; font-size: 12px; line-height: 1.6; }
-.selected-chord-panel { position: sticky; z-index: 8; top: var(--safe-top); min-height: 144px; margin: 18px 0 22px; padding: 12px 22px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #eaded6; border-radius: 15px; background: rgba(255,250,246,.96); box-shadow: 0 6px 20px rgba(70,50,40,.04); backdrop-filter: blur(12px); }.selected-chord-panel > div:first-child { display: flex; flex-direction: column; }.selected-chord-panel > div:first-child > span { color: var(--muted); font-size: 10px; }.selected-chord-panel > div:first-child > b { margin: 4px 0; color: var(--accent); font-size: 35px; }.selected-chord-panel small { color: #aaa49d; font-size: 9px; }.selected-chord-panel .chord-diagram { width: 98px; }
+/* 谱面下方的和弦条：把这份谱子用到的指法全排出来，边弹边看 */
+.used-chords { position: sticky; z-index: 9; top: calc(6px + var(--safe-top)); margin: 16px -4px 6px; padding: 10px 12px 7px; border: 1px solid #eaded6; border-radius: 15px; background: rgba(255, 250, 246, .96); box-shadow: 0 6px 20px rgba(70, 50, 40, .05); backdrop-filter: blur(12px); }
+.used-chords-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.used-chords-head b { color: #6a6f68; font-size: 12px; letter-spacing: .5px; }
+.used-chords-head span { color: var(--muted); font-size: 10px; }
+.used-chords-row { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.used-chords-row::-webkit-scrollbar { display: none; }
+.used-chord { flex: 0 0 auto; width: 62px; padding: 3px 2px 4px; display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1px solid transparent; border-radius: 10px; transition: .16s ease; }
+.used-chord .chord-diagram { width: 54px; }
+.used-chord b { color: #6a7169; font-size: 10px; font-weight: 600; }
+.used-chord.active { border-color: #f0ccc2; background: var(--accent-soft); }
+.used-chord.active b { color: var(--accent-dark); }
 .tab-chord-dock { margin-top: 20px; padding: 12px 18px; display: flex; align-items: center; gap: 15px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); }.tab-chord-dock > span { color: var(--muted); font-size: 10px; }.tab-chord-dock .chord-diagram { width: 65px; }.tab-chord-dock small { margin-left: auto; color: var(--muted); font-size: 9px; }
 .playback-preview { margin-top: 30px; padding: 15px; display: flex; align-items: center; gap: 12px; border: 1px dashed #d7d5cd; border-radius: 13px; color: var(--muted); }.play-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 50%; color: #b9b9b1; background: var(--soft); }.playback-preview > div { flex: 1; }.playback-preview b { color: #737971; font-size: 12px; }.playback-preview p { margin-top: 3px; font-size: 9px; }.playback-preview > span:last-child { font-size: 9px; }
 .score-bottom-bar { position: fixed; z-index: 25; bottom: 0; left: 0; right: 0; min-height: 68px; padding: 9px max(18px, env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); display: flex; align-items: center; justify-content: center; gap: 20px; border-top: 1px solid var(--border); background: rgba(255,255,255,.97); backdrop-filter: blur(15px); }.score-bottom-bar > button:not(.primary-button) { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; }.score-bottom-bar .primary-button { min-height: 42px; }
@@ -216,6 +227,56 @@ img { display: block; max-width: 100%; }
 .notation-paper { padding: 10px 0 4px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--paper); }.notation-system + .notation-system { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ece9e1; }.notation-chord-row { display: grid; grid-template-columns: repeat(var(--measure-count), minmax(0, 1fr)); align-items: end; margin-left: 6.05%; margin-right: 1.58%; }.notation-chord { height: 85px; padding: 0; display: flex; align-items: center; justify-content: center; }.notation-chord:hover { background: #fff8f5; }.notation-chord .chord-diagram.compact { width: 62px; }.notation-chord-name { height: 34px; display: grid; place-items: center; color: var(--accent); font-size: 13px; font-weight: 600; }.notation-svg { display: block; width: 100%; height: auto; overflow: visible; }.staff-line { stroke: #747a74; stroke-width: .85; }.bar-line { stroke: #525a53; stroke-width: 1.15; }.final-bar-line { stroke: #525a53; stroke-width: 3; }.time-signature text { fill: #353e37; font: 600 23px Georgia, serif; }.measure-number { fill: #9a9e97; font: 9px sans-serif; }.tab-fret { fill: #26332b; stroke: var(--paper); stroke-width: 5px; paint-order: stroke; font: 18px 'Courier New', monospace; }.tab-fret.muted { font-size: 20px; }.tab-rest { fill: #8c928b; font: 20px serif; }.note-stem { stroke: #4f5750; stroke-width: 1; }.note-beam { stroke: #4f5750; stroke-width: 3; }.note-flag { fill: none; stroke: #4f5750; stroke-width: 1.2; }.rhythm-dot { fill: #4f5750; }.technique-slur { fill: none; stroke: #59615a; stroke-width: .9; }.technique-label { fill: #6d746d; font: italic 8px Georgia, serif; }.jianpu-token { fill: #333c35; font: 20px 'Courier New', monospace; }.lyric-token { fill: #626a63; font: 15px 'Noto Sans SC', sans-serif; }.key-signature { fill: #626a63; font: 11px 'Noto Sans SC', sans-serif; }
 .notation-guide { margin-bottom: 16px; border: 1px solid #e5ded2; border-radius: 12px; background: #f7f2e9; }.notation-guide summary { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; color: #6f6659; font-size: 12px; font-weight: 600; list-style: none; }.notation-guide summary::-webkit-details-marker { display: none; }.notation-guide summary::before { content: '?'; width: 19px; height: 19px; display: grid; place-items: center; border: 1px solid #b8aa95; border-radius: 50%; font-size: 11px; }.notation-guide summary span { margin-left: auto; color: #a09687; font-size: 9px; font-weight: 400; }.notation-guide[open] summary::before { content: '−'; }.notation-guide-body { padding: 0 14px 14px; color: #776e61; font-size: 10px; line-height: 1.8; }.notation-guide-body > code { display: block; padding: 9px 11px; overflow-x: auto; border-radius: 7px; color: #524b41; background: rgba(255,255,255,.72); font-size: 11px; white-space: nowrap; }.notation-guide-body ul { margin: 10px 0 0; padding-left: 17px; }.notation-guide-body code { padding: 1px 3px; border-radius: 3px; background: rgba(255,255,255,.65); font-family: 'Courier New', monospace; }.notation-edit-fields { display: grid; gap: 9px; }.notation-edit-fields label { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 8px; }.notation-edit-fields label > span { color: var(--muted); font-size: 10px; }.notation-edit-fields label small { font-size: 8px; font-weight: 400; }.notation-edit-fields input { min-width: 0; height: 35px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; outline: none; color: #424a43; background: #fff; font-size: 11px; }.notation-edit-fields input:focus { border-color: #d9a99c; }.notation-edit-fields .tab-notation-input { font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: .2px; }
 .chord-sheet { padding: 5px 0 20px; overflow-x: auto; }.chord-section-title { margin: 28px 0 18px; }.chord-section-title:first-child { margin-top: 5px; }.chord-lyric-line { position: relative; width: max-content; min-width: 100%; margin: 0 0 22px; font-family: 'Noto Sans SC', monospace; }.chord-row { position: relative; height: 25px; padding-left: 1px; }.chord-row button { position: absolute; top: 0; padding: 1px 3px; border-radius: 4px; color: var(--accent); font-size: 14px; font-weight: 600; line-height: 20px; }.chord-row button:hover, .chord-row button.selected { background: var(--accent-soft); }.lyric-line { min-height: 26px; color: #343e37; font-size: 15px; line-height: 26px; letter-spacing: 1px; white-space: pre; }.lyric-line.plain { margin: 5px 0 20px; color: var(--muted); font-size: 12px; }.chord-lyric-line.instrumental { margin-bottom: 20px; }.chord-lyric-line.instrumental .lyric-line { color: #9a9e97; font-family: monospace; letter-spacing: 0; }
+
+/* 和弦库 */
+.chords-header { margin-bottom: 18px; }
+.chords-header h1 { margin-top: 7px; font-size: 26px; letter-spacing: -.4px; }
+.chords-header p { margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.chords-search { height: 46px; display: flex; align-items: center; gap: 9px; padding: 0 13px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); color: var(--muted); }
+.chords-search input { min-width: 0; flex: 1; border: 0; outline: none; background: transparent; color: var(--ink); font-size: 13px; }
+.chords-search button { display: grid; place-items: center; color: var(--muted); }
+.chord-categories { margin-bottom: 11px; }
+.root-chips { display: flex; gap: 6px; margin-bottom: 24px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
+.root-chips::-webkit-scrollbar { display: none; }
+.root-chips button { flex: 0 0 auto; min-width: 34px; height: 30px; padding: 0 9px; border: 1px solid var(--border); border-radius: 8px; color: #7b817a; background: var(--surface); font-size: 11px; }
+.root-chips button:hover { border-color: #cdd8d2; color: var(--green); }
+.root-chips button.active { color: #fff; border-color: var(--green); background: var(--green); font-weight: 600; }
+.chord-sections { display: grid; gap: 26px; }
+.chord-section .section-heading { margin-bottom: 0; }
+.chord-section .section-heading em { flex: 0 0 auto; color: #b4b6b0; font-size: 9px; font-style: normal; white-space: nowrap; }
+.chord-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 10px; margin-top: 12px; }
+.chord-card { padding: 10px 4px 9px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 3px 12px rgba(48, 52, 44, .03); transition: .16s ease; }
+.chord-card:hover { border-color: #ecd9d0; box-shadow: var(--shadow); transform: translateY(-1px); }
+.chord-card:active { transform: none; }
+.chord-card b { margin-top: 2px; color: var(--ink); font-size: 12px; }
+.chord-card small { color: var(--muted); font-size: 9px; }
+.chord-library-legend { margin: 28px 0 0; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px 16px; border-radius: 12px; background: var(--soft); color: #8a8f88; font-size: 10px; }
+.chord-library-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.chord-library-legend i { color: #6f7770; font-size: 10px; font-style: normal; letter-spacing: .5px; }
+.chord-caption { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+
+/* 和弦指法详情：底部弹出，手机上单手能够到关闭和试听 */
+.chord-detail-overlay { position: fixed; z-index: 95; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(22, 26, 23, .44); backdrop-filter: blur(2px); }
+.chord-detail-panel { width: min(100%, 540px); max-height: 88vh; overflow-y: auto; padding: 18px 20px calc(20px + var(--safe-bottom)); border-radius: 20px 20px 0 0; background: var(--paper); box-shadow: 0 -14px 42px rgba(20, 20, 15, .22); animation: sheet-up .22s ease-out; }
+@keyframes sheet-up { from { transform: translateY(22px); opacity: .55; } to { transform: none; opacity: 1; } }
+.chord-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.chord-detail-head h2 { margin-top: 5px; color: var(--accent); font-size: 25px; letter-spacing: .5px; }
+.chord-detail-body { display: flex; align-items: center; gap: 18px; margin: 10px 0 16px; }
+.chord-detail-info { flex: 1; min-width: 0; }
+.chord-detail-meta { color: var(--muted); font-size: 11px; }
+.chord-note-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+.chord-note-chips span { min-width: 26px; padding: 3px 7px; text-align: center; border-radius: 6px; color: #3f7a6b; background: var(--green-soft); font-size: 11px; font-weight: 600; }
+.chord-detail-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.chord-tag { padding: 2px 8px; border-radius: 999px; color: #82867f; background: var(--soft); font-size: 9px; }
+.chord-listen { margin-top: 13px; }
+.chord-string-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding-top: 15px; border-top: 1px solid var(--border); }
+.chord-string { padding: 7px 9px; display: flex; align-items: baseline; gap: 5px; border-radius: 9px; color: var(--muted); background: var(--soft); font-size: 10px; }
+.chord-string b { color: var(--ink); font-size: 11px; }
+.chord-string i { margin-left: auto; color: var(--green); font-size: 11px; font-style: normal; font-weight: 600; }
+.chord-string.muted b { color: #b0b2ac; }
+.chord-string.muted i { color: #c6c8c2; }
+.chord-legend { margin-top: 13px; color: #a8aba4; font-size: 9px; line-height: 1.7; }
+.chord-detail-empty { padding: 24px 0; color: var(--muted); font-size: 12px; }
 
 /* Tuner */
 
@@ -252,7 +313,10 @@ img { display: block; max-width: 100%; }
   .app-main { margin-left: 238px; }.bottom-nav { display: none; }.mobile-brand { display: none; }.home-greeting { grid-row: auto; }.search-trigger { grid-row: auto; }.home-header { grid-template-columns: 1fr auto; }.home-greeting { grid-column: 1; margin-top: 0; }.home-page { max-width: 900px; padding-top: calc(40px + var(--safe-top)); }.home-greeting h1 { font-size: 30px; }
   /* 桌面没有底部导航，不需要给它留 110px，否则按钮+设备下拉会被挤到首屏外 */
   .fasttune-page { padding-bottom: 32px; }
-  .score-list { grid-template-columns: 1fr 1fr; }.empty-state { grid-column: 1 / -1; }.score-bottom-bar { left: 238px; }.score-header { padding-top: calc(18px + var(--safe-top)); }.selected-chord-panel { top: calc(10px + var(--safe-top)); }.editor-save-bar { bottom: 20px; }
+  .score-list { grid-template-columns: 1fr 1fr; }.empty-state { grid-column: 1 / -1; }.score-bottom-bar { left: 238px; }.score-header { padding-top: calc(18px + var(--safe-top)); }.used-chords { top: calc(10px + var(--safe-top)); }.editor-save-bar { bottom: 20px; }
+  /* 桌面用居中的对话框比贴着屏幕底边更自然 */
+  .chord-detail-overlay { align-items: center; }
+  .chord-detail-panel { border-radius: 20px; margin-bottom: 4vh; max-height: 84vh; }
 }
 
 @media (max-width: 600px) {
@@ -260,7 +324,9 @@ img { display: block; max-width: 100%; }
   .score-card { gap: 12px; padding: 11px; }.score-cover { flex-basis: 80px; height: 94px; }.score-title-row h3 { font-size: 15px; }.score-meta { gap: 4px; font-size: 9px; }
   .metadata-form { grid-template-columns: 1fr 1fr; padding: 14px; }.metadata-form .wide { grid-column: span 2; }.recognition-meta { grid-template-columns: 1fr; }.page-thumbnail-grid { grid-template-columns: repeat(3, 1fr); }.review-page { grid-template-columns: 57px 1fr auto; gap: 9px; }.review-page-img img { width: 57px; height: 82px; }.review-page-title > b { max-width: 95px; }
   .editor-save-bar > span { display: none; }.editor-save-bar .primary-button { width: 100%; }.editor-save-bar { padding: 9px; bottom: 75px; }.string-edit-grid { grid-template-columns: 1fr; }
-  .score-header { height: calc(70px + var(--safe-top)); padding: calc(10px + var(--safe-top)) 8px 10px; }.score-content { padding-top: 0; }.score-properties { gap: 17px; }.score-properties b { font-size: 17px; }.original-toggle { padding: 7px; font-size: 0; }.original-toggle svg { width: 18px; }.selected-chord-panel { min-height: 126px; margin-top: 13px; padding: 8px 17px; }.selected-chord-panel .chord-diagram { width: 85px; }.selected-chord-panel > div:first-child > b { font-size: 30px; }
+  .score-header { height: calc(70px + var(--safe-top)); padding: calc(10px + var(--safe-top)) 8px 10px; }.score-content { padding-top: 0; }.score-properties { gap: 17px; }.score-properties b { font-size: 17px; }.original-toggle { padding: 7px; font-size: 0; }.original-toggle svg { width: 18px; }
+  .used-chords { margin: 12px -2px 4px; padding: 8px 10px 5px; }.used-chord { width: 58px; }.used-chord .chord-diagram { width: 50px; }
+  .chords-header h1 { font-size: 22px; }.chord-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }.chord-card { padding: 8px 2px 7px; }.chord-string-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }.chord-detail-panel { padding: 16px 16px calc(18px + var(--safe-bottom)); }.chord-detail-body { gap: 12px; }.chord-detail-head h2 { font-size: 22px; }
   .tab-chord-dock small { display: none; }.lyric-line { font-size: 14px; }.chord-row button { font-size: 13px; }.chord-sheet { padding-bottom: 10px; }
   /* 手机上把谱图铺到屏幕两侧，把有限的宽度全给谱面 */
   .original-viewer { margin: 0 -16px; }.original-scroll-pages { gap: 8px; }.zoomable { border-radius: 0; box-shadow: none; }

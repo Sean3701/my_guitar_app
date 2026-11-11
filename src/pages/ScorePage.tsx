@@ -4,8 +4,9 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Score } from '../types';
 import { deleteScore, getScores, saveScore } from '../lib/storage';
 import { usePageImages } from '../hooks/usePageImages';
-import ChordDiagram from '../components/ChordDiagram';
 import ChordSheet from '../components/ChordSheet';
+import ChordDetailSheet from '../components/ChordDetailSheet';
+import UsedChordStrip from '../components/UsedChordStrip';
 import ScoreEditor from '../components/ScoreEditor';
 import ZoomableScore from '../components/ZoomableScore';
 
@@ -18,6 +19,7 @@ export default function ScorePage() {
   // 用户手动切换过的看谱方式；为空时按「有原图就先看原图」推导，避免首帧闪一下格式谱
   const [modeOverride, setModeOverride] = useState<'formatted' | 'original' | null>(null);
   const [selectedChord, setSelectedChord] = useState('C');
+  const [detailChord, setDetailChord] = useState<{ name: string; count: number } | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [originalLayout, setOriginalLayout] = useState<'paged' | 'scroll'>(() => localStorage.getItem('shipu-original-layout') === 'paged' ? 'paged' : 'scroll');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,6 +48,13 @@ export default function ScorePage() {
   }, [score, originalLayout, pageIndex]);
   const pageUrls = usePageImages(pageIds);
   const showOriginal = hasSourcePages && mode === 'original';
+
+  // 这份谱子里出现的和弦：弹唱谱取和弦文本，图片谱取识别出的原谱文字，
+  // 两种来源都不用手动挑，扫描一遍就是「本谱和弦」
+  const chordSourceText = useMemo(
+    () => [score?.chordText ?? '', ...(score?.sourcePages.map((page) => page.text) ?? [])].filter(Boolean).join('\n'),
+    [score],
+  );
 
   // 滚动模式下用屏幕中线判断当前看到第几页，省掉压在谱面上的页码标签
   useEffect(() => {
@@ -109,13 +118,19 @@ export default function ScorePage() {
               <div className="original-page-controls"><button disabled={pageIndex === 0} onClick={() => setPageIndex(pageIndex - 1)}><ChevronLeft size={18} /></button><span>{pageIndex + 1} / {score.sourcePages.length}</span><button disabled={pageIndex === score.sourcePages.length - 1} onClick={() => setPageIndex(pageIndex + 1)}><ChevronRight size={18} /></button></div>
             </> : <div className="original-scroll-pages">{score.sourcePages.map((page, index) => <figure className="original-scroll-page" key={page.id}>{pageUrls[page.id] ? <ZoomableScore src={pageUrls[page.id]} alt={`原谱第${page.pageNumber}页`} eager={index === 0} onZoomChange={setZooming} /> : <div className="original-placeholder"><span className="loading-ring" />正在打开第 {page.pageNumber} 页…</div>}</figure>)}</div>}
           </div> : hasFormattedScore ? <>
-            <div className="selected-chord-panel"><div><span>和弦指法</span><b>{selectedChord}</b><small>点击谱中和弦可切换</small></div><ChordDiagram name={selectedChord} showName={false} /></div>
+            <UsedChordStrip
+              text={chordSourceText}
+              selected={selectedChord}
+              onSelect={setSelectedChord}
+              onOpen={(name, count) => setDetailChord({ name, count })}
+            />
             <ChordSheet text={score.chordText} onChordClick={setSelectedChord} selectedChord={selectedChord} />
           </> : <div className="empty-image-state"><ImageOff size={30} /><h3>这份琴谱还没有原图</h3><p>重新导入谱子图片后，就能在这里翻看原谱。</p></div>}
           {hasFormattedScore && mode === 'formatted' && <div className="playback-preview"><span className="play-icon"><Play size={20} fill="currentColor" /></span><div><b>自动弹奏与实时跟谱</b><p>播放引擎和位置指示器将在下一版接入</p></div><span>已预留</span></div>}
         </div>
         <div className="score-bottom-bar">{hasFormattedScore && <button onClick={() => setEditing(true)}><Edit3 size={18} />编辑</button>}<button onClick={toggleFavorite} className={score.favorite ? 'favorite' : ''}><Heart size={18} fill={score.favorite ? 'currentColor' : 'none'} />收藏</button>{hasFormattedScore && hasSourcePages ? <button className="primary-button" onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}>{mode === 'original' ? <FileText size={18} /> : <FileImage size={18} />}{mode === 'original' ? '看格式谱' : '对照原谱'}</button> : <button className="primary-button" onClick={() => navigate('/')}><ArrowLeft size={18} />返回谱架</button>}</div>
       </>}
+      {detailChord && <ChordDetailSheet name={detailChord.name} count={detailChord.count} onClose={() => setDetailChord(null)} />}
     </div>
   );
 }
