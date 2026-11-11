@@ -4,3 +4,4 @@ dist/
 .workbuddy/validation/
 .workbuddy/reference/
 dist-check/
+public/vendor/tesseract/

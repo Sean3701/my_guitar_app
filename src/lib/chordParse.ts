@@ -31,6 +31,19 @@ export function isChordLine(line: string) {
   return trimmed.replace(CHORD_TOKEN, '').replace(SEPARATORS, '').length === 0;
 }
 
+/**
+ * 一行文本有多像「和弦行」：和弦记号覆盖的字符占非空白字符的比例。
+ * OCR 从图片里重组出来的行是和弦行与歌词行的混合体，
+ * 拿 ratio 做阈值（而不是整行匹配）才不会漏掉被误识别出杂字的和弦行。
+ */
+export function chordCoverage(line: string) {
+  const tokens = tokensOf(line).map((token) => token.raw);
+  const solid = line.replace(/\s/g, '');
+  if (!tokens.length || !solid) return { tokens, ratio: 0 };
+  const covered = tokens.join('').length;
+  return { tokens, ratio: covered / solid.length };
+}
+
 export interface UsedChord {
   /** 谱面上写的名字，保留原拼写 */
   name: string;

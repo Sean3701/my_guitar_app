@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronLeft, ChevronRight, FileImage, FileMusic, ImagePlus, Music2, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronLeft, ChevronRight, FileImage, FileMusic, ImagePlus, Music2, ScanText, Trash2, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ImportPage as ImportPageItem, ScoreType } from '../types';
 import { detectPageNumber, detectTitle, emptyScore, uid } from '../lib/score';
 import { savePageImages, saveScore } from '../lib/storage';
 import { prepareImage } from '../lib/image';
+import { disposeOcr, recognizeChords } from '../lib/chordOcr';
+import { extractChords } from '../lib/chordParse';
 
 export default function ImportPage() {
   const navigate = useNavigate();
@@ -76,7 +78,11 @@ export default function ImportPage() {
         used.add(pageNumber);
         additions.push({
           id: uid(), image: prepared.image, preview: prepared.preview, name: file.name,
-          pageNumber, text: '', status: 'done', progress: 1,
+          pageNumber,
+          text: '',
+          // 弹唱谱要识别和弦，六线谱按原图看，不用等 OCR
+          status: type === 'chord' ? 'waiting' : 'done',
+          progress: 0,
         });
       } catch (error) {
         failed += 1;
@@ -86,10 +92,59 @@ export default function ImportPage() {
     if (failed) setNotice(`${failed} 张图片无法读取，已跳过`);
     if (!additions.length) return;
     setPages((old) => [...old, ...additions]);
+    if (type === 'chord') enqueueOcr(additions.map((page) => ({ id: page.id, image: page.image })));
     if (!title && !titleEdited.current) setTitle(detectTitle('', additions[0].name));
   };
 
   const patchPage = (id: string, patch: Partial<ImportPageItem>) => setPages((old) => old.map((page) => page.id === id ? { ...page, ...patch } : page));
+
+  // ============ 弹唱谱和弦识别 ============
+  // 队列里直接带 Blob：enqueueOcr 与 setPages 同批执行，从状态里找页面会拿到旧数组
+  const ocrQueue = useRef<{ id: string; image: Blob }[]>([]);
+  const ocrBusy = useRef(false);
+
+  const enqueueOcr = (items: { id: string; image: Blob }[]) => {
+    ocrQueue.current.push(...items);
+    void runOcrQueue();
+  };
+
+  const runOcrQueue = async () => {
+    if (ocrBusy.current) return;
+    ocrBusy.current = true;
+    try {
+      while (ocrQueue.current.length) {
+        const item = ocrQueue.current.shift()!;
+        patchPage(item.id, { status: 'reading', progress: 0 });
+        try {
+          const result = await recognizeChords(item.image, (ratio) => patchPage(item.id, { progress: Math.round(ratio * 100) / 100 }));
+          patchPage(item.id, { text: result.text, status: 'done', progress: 1 });
+        } catch (error) {
+          console.error('和弦识别失败', error);
+          patchPage(item.id, { status: 'error', progress: 0 });
+        }
+      }
+    } finally {
+      ocrBusy.current = false;
+      // wasm 常驻要吃几十 MB 内存，识别完就释放
+      void disposeOcr();
+    }
+  };
+
+  // 识别徽章文案：缩略图和复核列表共用
+  const ocrBadge = (page: ImportPageItem) => {
+    if (type !== 'chord' || page.status === 'done') return null;
+    if (page.status === 'reading') return `识别中 ${Math.round(page.progress * 100)}%`;
+    if (page.status === 'error') return '识别失败';
+    return '待识别';
+  };
+
+  // 这批图里认出来的和弦，第 2 步顶部做汇总提示
+  const recognizedChords = useMemo(
+    () => extractChords(pages.map((page) => page.text).filter(Boolean).join('\n')).map((chord) => chord.name),
+    [pages],
+  );
+  const pendingOcr = type === 'chord' && pages.some((page) => page.status === 'waiting' || page.status === 'reading');
+
 
   const movePage = (index: number, direction: -1 | 1) => {
     const target = index + direction;
@@ -119,7 +174,7 @@ export default function ImportPage() {
       score.sections = [];
       score.chordText = '';
       score.sourcePages = sorted.map((page) => ({
-        id: page.id, name: page.name, pageNumber: page.pageNumber, text: '', thumbnail: page.preview,
+        id: page.id, name: page.name, pageNumber: page.pageNumber, text: page.text, thumbnail: page.preview,
       }));
       await saveScore(score);
       navigate(`/score/${score.id}`, { replace: true });
@@ -158,23 +213,31 @@ export default function ImportPage() {
           <h2>{type ? `选择${typeLabel}图片` : '先选择上方的谱子类型'}</h2><p>{type ? '支持多页导入，图片内容将原样保留' : '六线谱和弹唱谱的看谱方式不同，选好再添加图片'}</p><button className="secondary-button" disabled={!type}>从相册或文件中选择</button>
         </section>
         <div className="photo-tips"><b>导入后只需整理页面</b><span>填写歌曲名称，确认每页页码和顺序，即可保存到谱架</span></div>
-        {pages.length > 0 && <section className="selected-pages"><div className="list-section-title"><h2>已选择 {pages.length} 页</h2><button onClick={() => inputRef.current?.click()}>继续添加</button></div><div className="page-thumbnail-grid">{pages.map((page, index) => <div className="page-thumbnail" key={page.id}><img src={page.preview} alt={page.name} /><span>第 {index + 1} 张</span><button aria-label={`移除 ${page.name}`} onClick={(event) => { event.stopPropagation(); setPages((old) => old.filter((item) => item.id !== page.id)); }}><X size={14} /></button></div>)}</div></section>}
+        {pages.length > 0 && <section className="selected-pages"><div className="list-section-title"><h2>已选择 {pages.length} 页</h2><button onClick={() => inputRef.current?.click()}>继续添加</button></div><div className="page-thumbnail-grid">{pages.map((page, index) => <div className="page-thumbnail" key={page.id}><img src={page.preview} alt={page.name} />{ocrBadge(page) && <i className="thumb-ocr">{ocrBadge(page)}</i>}<span>第 {index + 1} 张</span><button aria-label={`移除 ${page.name}`} onClick={(event) => { event.stopPropagation(); setPages((old) => old.filter((item) => item.id !== page.id)); }}><X size={14} /></button></div>)}</div></section>}
         <div className="bottom-action"><button className="primary-button full" disabled={!pages.length} onClick={preparePages}>填写信息与整理页码<ArrowRight size={18} /></button></div>
       </>}
 
       {step === 2 && <>
-        <div className="recognition-banner finished"><span><Check size={20} /></span><div><b>{pages.length} 页{typeLabel}图片已就绪</b><p>不会识别、转写或修改图片内容</p></div><button type="button" className="banner-edit" onClick={() => setStep(1)}>改类型</button></div>
+        <div className="recognition-banner finished"><span><Check size={20} /></span><div><b>{pages.length} 页{typeLabel}图片已就绪</b><p>{type === 'chord'
+          ? (pendingOcr
+            ? '正在识别图片中的和弦标记，稍等片刻再保存更完整'
+            : recognizedChords.length
+              ? `已识别出 ${recognizedChords.length} 个和弦：${recognizedChords.slice(0, 12).join(' ')}${recognizedChords.length > 12 ? '…' : ''}，保存后自动展示指法图`
+              : '未从图片中识别到和弦标记，仍可保存后手动识别')
+          : '不会识别、转写或修改图片内容'}</p></div>{type === 'chord' && <button type="button" className="banner-edit" onClick={() => setStep(1)}>改类型</button>}</div>
         <section className="recognition-meta"><label><span>歌曲名称</span><input autoFocus value={title} onChange={(event) => { titleEdited.current = true; setTitle(event.target.value); }} placeholder="请输入歌曲名称" /></label><label><span>音乐人</span><input value={artist} onChange={(event) => setArtist(event.target.value)} placeholder="选填" /></label></section>
         <section className="review-pages"><div className="list-section-title"><h2>页码与顺序</h2><span>可直接修改页码，或用箭头排序</span></div>{pages.map((page, index) => <article className="review-page" key={page.id}>
           <button type="button" className="review-page-img" onClick={() => setViewerIndex(index)} aria-label={`查看第${page.pageNumber}页大图`}>
             <img src={page.preview} alt={`第${page.pageNumber}页`} />
           </button>
-          <div className="review-page-main"><div className="review-page-title"><b>{page.name}</b><span className="ocr-status done">原图</span></div>
+          <div className="review-page-main"><div className="review-page-title"><b>{page.name}</b><span className={`ocr-status ${page.status === 'error' ? '' : 'done'}`}>{type === 'chord' ? (page.status === 'error' ? '识别失败' : page.status === 'reading' ? `识别中 ${Math.round(page.progress * 100)}%` : page.status === 'waiting' ? '待识别' : extractChords(page.text).length ? `${extractChords(page.text).length} 个和弦` : '无和弦') : '原图'}</span></div>
             <label className="page-number-field">页码<input type="number" min="1" value={page.pageNumber} onChange={(event) => patchPage(page.id, { pageNumber: Math.max(1, Number(event.target.value)) })} onBlur={() => setPages((old) => [...old].sort((a, b) => a.pageNumber - b.pageNumber))} /></label>
           </div>
           <div className="page-order-actions"><button disabled={index === 0} onClick={() => movePage(index, -1)} aria-label="上移一页"><ArrowUp size={15} /></button><button disabled={index === pages.length - 1} onClick={() => movePage(index, 1)} aria-label="下移一页"><ArrowDown size={15} /></button><button onClick={() => setPages((old) => old.filter((item) => item.id !== page.id))} aria-label="移除图片"><Trash2 size={15} /></button></div>
         </article>)}</section>
-        <div className="ocr-notice"><FileImage size={18} /><p>保存后可直接翻看原始琴谱，支持单页翻页和连续滚动。若页码相同，将保持当前排列顺序。</p></div>
+        <div className="ocr-notice">{type === 'chord' ? <ScanText size={18} /> : <FileImage size={18} />}<p>{type === 'chord'
+          ? '保存后可在原图下方自动看到本谱用到的和弦指法图；识别完全在手机本地完成，不联网、原图原样保存。'
+          : '保存后可直接翻看原始琴谱，支持单页翻页和连续滚动。若页码相同，将保持当前排列顺序。'}</p></div>
         <div className="bottom-action"><button className="primary-button full" disabled={saving || !pages.length || !title.trim() || !type} onClick={saveImportedScore}><Check size={18} />{saving ? '正在保存…' : '保存到谱架'}</button></div>
       </>}
 

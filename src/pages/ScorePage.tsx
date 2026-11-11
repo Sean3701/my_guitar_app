@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Edit3, FileImage, FileText, Heart, ImageOff, MoreHorizontal, Play, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Edit3, FileImage, FileText, Heart, ImageOff, MoreHorizontal, Play, ScanText, Trash2, X } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Score } from '../types';
-import { deleteScore, getScores, saveScore } from '../lib/storage';
+import { deleteScore, getPageImages, getScores, saveScore } from '../lib/storage';
 import { usePageImages } from '../hooks/usePageImages';
+import { disposeOcr, recognizeChords } from '../lib/chordOcr';
 import ChordSheet from '../components/ChordSheet';
 import ChordDetailSheet from '../components/ChordDetailSheet';
 import UsedChordStrip from '../components/UsedChordStrip';
@@ -25,6 +26,7 @@ export default function ScorePage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [visiblePage, setVisiblePage] = useState(0);
   const [zooming, setZooming] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const viewParam = searchParams.get('view');
 
   useEffect(() => { getScores().then((scores) => setScore(scores.find((item) => item.id === id) || null)); }, [id]);
@@ -92,14 +94,53 @@ export default function ScorePage() {
     localStorage.setItem('shipu-original-layout', layout);
   };
 
+  // 给还没识别过和弦的页补识别：在本地跑 OCR，把结果写回琴谱
+  const recognizeMissingPages = async () => {
+    if (!score || ocrStatus) return;
+    const targets = score.sourcePages.filter((page) => !page.text);
+    if (!targets.length) return;
+    setOcrStatus('准备识别…');
+    try {
+      const images = await getPageImages(targets.map((page) => page.id));
+      const nextPages = [...score.sourcePages];
+      for (const [index, target] of targets.entries()) {
+        const blob = images[target.id];
+        if (!blob) continue;
+        const result = await recognizeChords(blob, (ratio) => setOcrStatus(`第 ${index + 1} 页 ${Math.round(ratio * 100)}%`));
+        const pageIndex = nextPages.findIndex((page) => page.id === target.id);
+        if (pageIndex >= 0) nextPages[pageIndex] = { ...nextPages[pageIndex], text: result.text };
+      }
+      await updateScore({ ...score, sourcePages: nextPages });
+    } catch (error) {
+      console.error('识别和弦失败', error);
+    } finally {
+      setOcrStatus(null);
+      void disposeOcr();
+    }
+  };
+
+  // 弹唱谱的「本谱和弦」条：原图模式下也要有，格式谱模式下放在和弦文本上方
+  const chordStrip = (place: 'above' | 'below') => (
+    <UsedChordStrip
+      key={place}
+      text={chordSourceText}
+      selected={selectedChord}
+      onSelect={setSelectedChord}
+      onOpen={(name, count) => setDetailChord({ name, count })}
+    />
+  );
+
   return (
     <div className="score-page">
       <header className="score-header"><button className="icon-button" aria-label={editing ? '关闭编辑' : '返回首页'} onClick={() => editing ? setEditing(false) : navigate('/')}>{editing ? <X size={21} /> : <ArrowLeft size={21} />}</button><div><h1>{score.title}</h1><p>{score.artist || '未知音乐人'}</p></div><button className={`icon-button ${score.favorite ? 'favorite' : ''}`} onClick={toggleFavorite}><Heart size={20} fill={score.favorite ? 'currentColor' : 'none'} /></button><div className="more-wrap"><button className="icon-button" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={22} /></button>{menuOpen && <div className="more-menu">{hasFormattedScore && <button onClick={() => { setEditing(true); setMenuOpen(false); }}><Edit3 size={16} />编辑琴谱</button>}<button className="danger" onClick={remove}><Trash2 size={16} />删除琴谱</button></div>}</div></header>
       {editing ? <div className="page embedded-editor"><ScoreEditor initialScore={score} onSave={updateScore} /></div> : <>
         <div className="score-content page">
-          {hasFormattedScore ? <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}>{mode === 'original' ? <FileText size={17} /> : <FileImage size={17} />}{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div> : <div className="image-score-summary"><FileImage size={18} /><span>{score.type === 'tab' ? '六线谱' : '弹唱谱'}原始图片</span><b>{score.sourcePages.length ? `共 ${score.sourcePages.length} 页` : '暂无原图'}</b></div>}
+          {hasFormattedScore ? <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}>{mode === 'original' ? <FileText size={17} /> : <FileImage size={17} />}{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div> : <div className="image-score-summary"><FileImage size={18} /><span>{score.type === 'tab' ? '六线谱' : '弹唱谱'}原始图片</span><b>{score.sourcePages.length ? `共 ${score.sourcePages.length} 页` : '暂无原图'}</b>{score.type === 'chord' && score.sourcePages.length > 0 && <button className="summary-action" onClick={recognizeMissingPages} disabled={Boolean(ocrStatus)}>{ocrStatus ? `${ocrStatus}…` : <><ScanText size={13} />识别和弦</>}</button>}</div>}
 
-          {showOriginal ? <div className={`original-viewer ${originalLayout}`}>
+          {showOriginal ? <>
+            {/* 滚动模式把和弦条钉在上方：读到哪儿都能看到指法；单页模式放原图下方 */}
+            {score.type === 'chord' && originalLayout === 'scroll' && chordStrip('above')}
+            <div className={`original-viewer ${originalLayout}`}>
             <div className="original-toolbar">
               <div className="original-view-mode" aria-label="原图查看模式">
                 <button className={originalLayout === 'scroll' ? 'active' : ''} onClick={() => changeOriginalLayout('scroll')}>滚动看图</button>
@@ -117,7 +158,10 @@ export default function ScorePage() {
                 : <div className="original-placeholder"><span className="loading-ring" />正在打开第 {pageIndex + 1} 页…</div>}
               <div className="original-page-controls"><button disabled={pageIndex === 0} onClick={() => setPageIndex(pageIndex - 1)}><ChevronLeft size={18} /></button><span>{pageIndex + 1} / {score.sourcePages.length}</span><button disabled={pageIndex === score.sourcePages.length - 1} onClick={() => setPageIndex(pageIndex + 1)}><ChevronRight size={18} /></button></div>
             </> : <div className="original-scroll-pages">{score.sourcePages.map((page, index) => <figure className="original-scroll-page" key={page.id}>{pageUrls[page.id] ? <ZoomableScore src={pageUrls[page.id]} alt={`原谱第${page.pageNumber}页`} eager={index === 0} onZoomChange={setZooming} /> : <div className="original-placeholder"><span className="loading-ring" />正在打开第 {page.pageNumber} 页…</div>}</figure>)}</div>}
-          </div> : hasFormattedScore ? <>
+            </div>
+            {/* 单页翻页：和弦条放在这一页原图的下方 */}
+            {score.type === 'chord' && originalLayout === 'paged' && chordStrip('below')}
+          </> : hasFormattedScore ? <>
             <UsedChordStrip
               text={chordSourceText}
               selected={selectedChord}

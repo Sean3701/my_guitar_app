@@ -148,6 +148,8 @@ img { display: block; max-width: 100%; }
 .page-thumbnail-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .page-thumbnail { position: relative; aspect-ratio: .76; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #ddd; }
 .page-thumbnail img { width: 100%; height: 100%; object-fit: cover; }.page-thumbnail > span { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 3px 5px; text-align: center; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.65)); font-size: 9px; }.page-thumbnail > button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: rgba(0,0,0,.5); }
+/* 缩略图上的和弦识别进度徽章 */
+.thumb-ocr { position: absolute; top: 4px; left: 4px; max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 6px; border-radius: 6px; color: #fff; background: rgba(232, 115, 97, .92); font-style: normal; font-size: 8px; line-height: 1; }
 .bottom-action { margin-top: 25px; }.bottom-action .primary-button { min-height: 49px; }
 .recognition-banner { padding: 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 19px; border-radius: 14px; color: #88632c; background: #faf0dd; }.recognition-banner.finished { color: var(--green); background: var(--green-soft); }.recognition-banner b { font-size: 13px; }.recognition-banner p { margin-top: 3px; color: #8f9088; font-size: 10px; }
 /* 第二步里回头改类型：不打断流程，直接跳回第一步 */
@@ -182,6 +184,10 @@ img { display: block; max-width: 100%; }
 .more-wrap { position: relative; }.more-menu { position: absolute; top: 43px; right: 0; width: 135px; padding: 6px; border: 1px solid var(--border); border-radius: 11px; background: #fff; box-shadow: 0 10px 30px rgba(30,30,20,.12); }.more-menu button { width: 100%; padding: 10px; display: flex; align-items: center; gap: 8px; border-radius: 7px; font-size: 12px; }.more-menu button:hover { background: var(--soft); }.more-menu .danger { color: var(--accent-dark); }
 .score-content { max-width: 960px; padding-top: 0; }
 .image-score-summary { padding: 17px 4px 20px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 12px; }.image-score-summary svg { color: var(--accent); }.image-score-summary b { margin-left: auto; color: var(--ink); font-size: 12px; font-weight: 500; }
+/* 摘要行里的「识别和弦」按钮 */
+.summary-action { flex: 0 0 auto; margin-left: 10px; padding: 7px 12px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #f0ccc2; border-radius: 9px; color: var(--accent-dark); background: var(--accent-soft); font-size: 10px; font-weight: 500; }
+.summary-action:disabled { opacity: .75; }
+.summary-action svg { color: var(--accent-dark); }
 .score-properties { position: relative; display: flex; align-items: center; gap: 23px; padding: 17px 4px 20px; border-bottom: 1px solid var(--border); }.score-properties > button:not(.original-toggle) { padding: 0; text-align: left; }.score-properties b { display: block; font-size: 20px; }.score-properties span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }.score-properties > i { width: 1px; height: 28px; background: var(--border); }.original-toggle { margin-left: auto; padding: 8px 10px; display: flex; align-items: center; gap: 5px; border-radius: 8px; color: var(--muted); background: var(--soft); font-size: 10px; }.original-toggle.active { color: var(--accent); background: var(--accent-soft); }
 .original-viewer { padding-top: 18px; }
 .original-view-mode { width: 230px; padding: 4px; display: flex; border-radius: 11px; background: var(--soft); }
