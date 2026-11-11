@@ -11,8 +11,8 @@
  * 这样即使布局分析出错，和弦也不会被歌词吞掉。
  */
 import { createWorker, type Worker } from 'tesseract.js';
-import { resolveChord } from '../data/chords';
 import { chordCoverage } from './chordParse';
+import { isExactChord } from '../data/chords';
 
 const BASE = import.meta.env.BASE_URL || '/';
 
@@ -98,13 +98,24 @@ async function prepareForOcr(blob: Blob): Promise<Blob> {
 }
 
 /**
- * 常见 OCR 伪影清洗：开头的重复字母（Cc、GG）压回单个。
- * 但 Bb 本身就是合法的降号和弦根音，所以先试原词，是和弦就不动。
+ * OCR 伪影清洗。策略：能「精确」解析成和弦的原样保留（Bb、Em7 都是合法记号），
+ * 否则逐级尝试清洗：去首尾标点 → 压掉开头重复的同字母（Cc → C，Bb 大小写不同不受影响）
+ * → 压掉尾部黏连的小写噪声（Eo → E）。全失败时返回去过标点的词。
  */
 function cleanWord(text: string) {
-  if (resolveChord(text)) return text;
-  const collapsed = text.replace(/^([A-Ga-g])\1+/i, (_artifact, letter: string) => letter.toUpperCase());
-  return collapsed !== text && resolveChord(collapsed) ? collapsed : text;
+  if (isExactChord(text)) return text;
+  const trimmed = text.replace(/^[^A-Za-z0-9#]+|[^A-Za-z0-9#]+$/g, '');
+  if (trimmed && isExactChord(trimmed)) return trimmed;
+  const collapsed = trimmed.replace(/^([A-G])\1+/, '$1');
+  if (collapsed !== trimmed && isExactChord(collapsed)) return collapsed;
+  // 尾部小写噪声只在整词不是合法记号时才压掉，保护 Bb、Em 这类
+  const coverage = chordCoverage(trimmed);
+  const isFullToken = coverage.tokens.length === 1 && coverage.tokens[0] === trimmed;
+  if (!isFullToken) {
+    const stripped = trimmed.replace(/[a-z]+$/, '');
+    if (stripped && stripped !== trimmed && isExactChord(stripped)) return stripped;
+  }
+  return trimmed || text;
 }
 
 interface OcrWord {
@@ -173,13 +184,24 @@ export async function recognizeChords(image: Blob, onProgress?: (ratio: number) 
     const rawText = result.data.text ?? '';
 
     const words = collectWords(result.data.blocks ?? []);
-    const lines: string[] = [];
-    for (const row of groupRows(words)) {
+    const rows = groupRows(words).map((row) => {
       const lineText = row.map((word) => cleanWord(word.text)).join(' ');
       const { tokens, ratio } = chordCoverage(lineText);
-      // 大多数 token 出现在相邻行时可看做同一和弦的分裂识别（Am 7 → Am7），先不做合并，交给解析层
-      if (!tokens.length || ratio < MIN_ROW_RATIO) continue;
-      lines.push(tokens.join('  '));
+      return { tokens, ratio };
+    });
+    // 第一个带性质后缀的记号（Em、G7、Csus4…）之前的行都在谱头区：标题、调号、
+    // Capo 标记。这一行的乱码（「选调：」读成 EE:）最容易被清洗成单个裸字母，
+    // 所以谱头区只保留有 3 个以上记号的行（真前奏行 C G D 这种）。
+    const firstAnchored = rows.findIndex(
+      (row) => row.ratio >= MIN_ROW_RATIO && row.tokens.some((token) => !/^[A-G][#b]?$/.test(token)),
+    );
+    const lines: string[] = [];
+    for (const [index, row] of rows.entries()) {
+      if (!row.tokens.length || row.ratio < MIN_ROW_RATIO) continue;
+      // 整行只剩一个裸根音（C、G 这种无后缀单字母）同样不可信
+      if (row.tokens.length === 1 && /^[A-G][#b]?$/.test(row.tokens[0])) continue;
+      if (index < firstAnchored && row.tokens.length < 3) continue;
+      lines.push(row.tokens.join('  '));
     }
     return { text: lines.join('\n'), rawText };
   } finally {

@@ -77,7 +77,10 @@ const INTERVALS: Record<string, number[]> = {
 
 /** 只是写法不同、音完全一样的别名：命中这些不算「近似指法」 */
 const EXACT_ALIASES: Record<string, string> = {
-  major: '', M: '', maj: '', Maj: '',
+  major: '', maj: '', Maj: '',
+  // 国内弹唱谱的惯例：EM、AM、BM 里的 M 表示小和弦（EM = Em），
+  // 而 M7/M9 沿用爵士惯例是大七/大九（CM7 = Cmaj7）
+  M: 'm',
   minor: 'm', min: 'm', mi: 'm', '-': 'm',
   min7: 'm7', mi7: 'm7', '-7': 'm7', M7: 'maj7', Maj7: 'maj7', 'Δ7': 'maj7', 'Δ': 'maj7',
   dom7: '7', sus: 'sus4', ø: 'm7b5', 'ø7': 'm7b5', '°': 'dim', '°7': 'dim7', o7: 'dim7', '+': 'aug', '6/9': '6', '69': '6',
@@ -101,6 +104,12 @@ export interface ParsedChord {
   /** 低音，无斜杠时等于根音 */
   bass: string;
   slash: boolean;
+}
+
+/** 精确命中库里的指法（近似简化不算——那说明记号本身没解析干净） */
+export function isExactChord(input: string) {
+  const resolution = resolveChord(input);
+  return Boolean(resolution && !resolution.approx);
 }
 
 export function parseChordName(input: string): ParsedChord | null {

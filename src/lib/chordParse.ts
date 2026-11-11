@@ -4,10 +4,10 @@ import { resolveChord, type ChordResolution } from '../data/chords';
  * 和弦记号。性质按长度从长到短排，正则才会优先吃掉「maj7」而不是「m」。
  * 前后都用 \b 卡住，避免 Baby、Email 这种单词被误认成 B、Em。
  */
-const CHORD_TOKEN = /\b([A-G](?:#|b)?(?:maj9|maj7|maj|min7|min|dim7|dim|aug|sus4|sus2|sus|add11|add9|m7b5|7sus4|m7|m6|m9|m|13|11|9|7|6|5)?(?:\/[A-G](?:#|b)?)?)\b/g;
+const CHORD_TOKEN = /\b([A-G](?:#|b)?(?:maj9|maj7|maj|M9|M7|min7|min|dim7|dim|aug|sus4|sus2|sus|add11|add9|m7b5|7sus4|m7|m6|m9|m|M|13|11|9|7|6|5)?(?:\/[A-G](?:#|b)?)?)\b/g;
 
-/** 和弦行里允许出现的非和弦字符：小节线、空格、重复记号等 */
-const SEPARATORS = /[\s|_:·•\-—–~,，、;；()（）[\]{}<>/\\]/g;
+/** 和弦行里允许出现的非和弦字符：小节线、空格、重复记号、中文标点（EM。这种句尾点很常见）等 */
+const SEPARATORS = /[\s|_:·•\-—–~,，、;；。．！？()（）[\]{}<>/\\]/g;
 
 function normalizeText(text: string) {
   return text
@@ -38,7 +38,8 @@ export function isChordLine(line: string) {
  */
 export function chordCoverage(line: string) {
   const tokens = tokensOf(line).map((token) => token.raw);
-  const solid = line.replace(/\s/g, '');
+  // 有效字符不含分隔符：「EM。 BM。」的有效字符就是四个和弦记号本身
+  const solid = line.replace(SEPARATORS, '');
   if (!tokens.length || !solid) return { tokens, ratio: 0 };
   const covered = tokens.join('').length;
   return { tokens, ratio: covered / solid.length };

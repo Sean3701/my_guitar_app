@@ -5,20 +5,25 @@
  *   3. 等和弦识别完成（缩略图徽章消失）
  *   4. 进入第 2 步，填标题，保存
  *   5. 检查谱面页是否自动出现「本谱和弦」条，并截图
- * 用法：node scripts/test-import-flow.mjs [端口] [截图保存路径]
+ * 用法：node scripts/test-import-flow.mjs [端口] [截图保存路径] [图片URL（/public 下）]
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PORT = process.argv[2] ?? '5173';
 const shotPath = process.argv[3] ?? fileURLToPath(new URL('../.workbuddy/validation/import-flow.png', import.meta.url));
+// Git Bash 会把以 / 开头的参数 MSYS 转换成 Windows 路径，这里取末段还原
+const IMAGE_ARG = process.argv[4] ? process.argv[4].replace(/^([A-Za-z]:)?[\\/]+/, '').split(/[\\/]/).pop() : 'chord-sheet-test.png';
+const IMAGE = '/' + IMAGE_ARG;
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const DEBUG_PORT = 9335;
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+/** 浏览器内 fetch 受本机环境随机拦截（blockedReason: other），改为 node 侧读文件、base64 注入 */
+const imageBase64 = readFileSync(root.replace(/[\\/]+$/, '') + '/public/' + IMAGE_ARG).toString('base64');
 const profile = mkdtempSync(join(tmpdir(), 'chrome-import-'));
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', '--no-default-browser-check',
@@ -79,8 +84,8 @@ await wait(200);
 
 // 2. 注入测试图片
 await evaluate(`(async () => {
-  const blob = await (await fetch('/chord-sheet-test.png')).blob();
-  const file = new File([blob], '童年弹唱谱.png', { type: 'image/png' });
+  const bytes = Uint8Array.from(atob(${JSON.stringify(imageBase64)}), (char) => char.charCodeAt(0));
+  const file = new File([bytes], '三人游弹唱谱.jpg', { type: 'image/jpeg' });
   const transfer = new DataTransfer();
   transfer.items.add(file);
   const input = document.querySelector('input[type=file]');
@@ -115,7 +120,7 @@ console.log(`[import-test] 第 2 步汇总：${banner}`);
 await evaluate(`(() => {
   const input = document.querySelector('.recognition-meta input');
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  setter.call(input, '童年');
+  setter.call(input, '三人游');
   input.dispatchEvent(new Event('input', { bubbles: true }));
 })()`);
 await wait(200);

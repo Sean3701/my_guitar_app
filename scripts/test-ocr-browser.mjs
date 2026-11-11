@@ -10,6 +10,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const PORT = process.argv[2] ?? '5173';
+/** 要识别的图片：本地路径或 /public 下的 URL，默认用仓库自带的模拟谱 */
+// 注意：Git Bash 会把以 / 开头的参数 MSYS 转换成 Windows 路径，这里取末段还原成站内路径
+const IMAGE = process.argv[3] ? '/' + process.argv[3].replace(/^([A-Za-z]:)?[\\/]+/, '').split(/[\\/]/).pop() : '/chord-sheet-test.png';
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const DEBUG_PORT = 9333;
 
@@ -63,11 +66,30 @@ for (let i = 0; i < 40 && !events.some((event) => event.method === 'Page.loadEve
 const state = await send('Runtime.evaluate', { expression: 'location.href', returnByValue: true });
 console.log(`[browser-test] 已打开：${state.result?.result?.value}`);
 
+// 先单独加载模块：首次动态 import 会触发 vite 依赖优化并整页 reload，
+// 上下文会被杀掉，所以必须在主流程之前单独跑这一步
+const preload = await send('Runtime.evaluate', {
+  expression: `import('/src/lib/chordOcr.ts').then(() => import('/src/lib/chordParse.ts')).then(() => 'ok')`,
+  awaitPromise: true, returnByValue: true,
+});
+if (preload.result?.exceptionDetails) {
+  console.error('[browser-test] 模块加载失败:', JSON.stringify(preload.result.exceptionDetails));
+  process.exit(1);
+}
+await wait(1500);
+
 const expression = `(async () => {
+  const out = [];
   const { recognizeChords } = await import('/src/lib/chordOcr.ts');
-  const blob = await (await fetch('/chord-sheet-test.png')).blob();
+  const { extractChords } = await import('/src/lib/chordParse.ts');
+  let blob;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try { blob = await (await fetch(${JSON.stringify(IMAGE)})).blob(); out.push('fetch OK'); break; }
+    catch (error) { out.push('fetch FAIL ' + attempt); if (attempt === 2) throw error; await new Promise((done) => setTimeout(done, 1200)); }
+  }
   const result = await recognizeChords(blob);
-  return JSON.stringify({ text: result.text, rawPreview: result.rawText.replace(/\\n{2,}/g, '\\n').slice(0, 500) }, null, 2);
+  const chords = extractChords(result.text).map((chord) => chord.name);
+  return JSON.stringify({ chords, text: result.text, log: out.join(','), rawPreview: result.rawText.replace(/\\n{2,}/g, '\\n').slice(0, 500) }, null, 2);
 })()`;
 
 console.log('[browser-test] 开始识别（首次需加载 wasm，约 10~40 秒）…');
