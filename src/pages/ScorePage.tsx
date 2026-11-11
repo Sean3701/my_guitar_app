@@ -94,10 +94,11 @@ export default function ScorePage() {
     localStorage.setItem('shipu-original-layout', layout);
   };
 
-  // 给还没识别过和弦的页补识别：在本地跑 OCR，把结果写回琴谱
+  // 重新识别全部页的和弦：在本地跑 OCR，把结果写回琴谱。
+  // 已有识别文本的页也会重跑——识别算法升级后，老谱子靠这个按钮就能跟上
   const recognizeMissingPages = async () => {
     if (!score || ocrStatus) return;
-    const targets = score.sourcePages.filter((page) => !page.text);
+    const targets = score.sourcePages;
     if (!targets.length) return;
     setOcrStatus('准备识别…');
     try {
@@ -135,7 +136,7 @@ export default function ScorePage() {
       <header className="score-header"><button className="icon-button" aria-label={editing ? '关闭编辑' : '返回首页'} onClick={() => editing ? setEditing(false) : navigate('/')}>{editing ? <X size={21} /> : <ArrowLeft size={21} />}</button><div><h1>{score.title}</h1><p>{score.artist || '未知音乐人'}</p></div><button className={`icon-button ${score.favorite ? 'favorite' : ''}`} onClick={toggleFavorite}><Heart size={20} fill={score.favorite ? 'currentColor' : 'none'} /></button><div className="more-wrap"><button className="icon-button" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={22} /></button>{menuOpen && <div className="more-menu">{hasFormattedScore && <button onClick={() => { setEditing(true); setMenuOpen(false); }}><Edit3 size={16} />编辑琴谱</button>}<button className="danger" onClick={remove}><Trash2 size={16} />删除琴谱</button></div>}</div></header>
       {editing ? <div className="page embedded-editor"><ScoreEditor initialScore={score} onSave={updateScore} /></div> : <>
         <div className="score-content page">
-          {hasFormattedScore ? <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}>{mode === 'original' ? <FileText size={17} /> : <FileImage size={17} />}{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div> : <div className="image-score-summary"><FileImage size={18} /><span>{score.type === 'tab' ? '六线谱' : '弹唱谱'}原始图片</span><b>{score.sourcePages.length ? `共 ${score.sourcePages.length} 页` : '暂无原图'}</b>{score.type === 'chord' && score.sourcePages.length > 0 && <button className="summary-action" onClick={recognizeMissingPages} disabled={Boolean(ocrStatus)}>{ocrStatus ? `${ocrStatus}…` : <><ScanText size={13} />识别和弦</>}</button>}</div>}
+          {hasFormattedScore ? <div className="score-properties"><button><b>{score.musicalKey} 调</b><span>{score.capo ? `夹 ${score.capo} 品` : '原调指法'}</span></button><i /><button><b>{score.bpm}</b><span>拍速 · {score.timeSignature}</span></button><i /><button><b>{score.type === 'tab' ? '六线谱' : '弹唱谱'}</b><span>{score.sample ? '示例' : '我的琴谱'}</span></button>{score.sourcePages.length > 0 && <button className={`original-toggle ${mode === 'original' ? 'active' : ''}`} onClick={() => setMode(mode === 'original' ? 'formatted' : 'original')}>{mode === 'original' ? <FileText size={17} /> : <FileImage size={17} />}{mode === 'original' ? '看格式谱' : '看原图'}</button>}</div> : <div className="image-score-summary"><FileImage size={18} /><span>{score.type === 'tab' ? '六线谱' : '弹唱谱'}原始图片</span><b>{score.sourcePages.length ? `共 ${score.sourcePages.length} 页` : '暂无原图'}</b>{score.type === 'chord' && score.sourcePages.length > 0 && <button className="summary-action" onClick={recognizeMissingPages} disabled={Boolean(ocrStatus)}>{ocrStatus ? `${ocrStatus}…` : <><ScanText size={13} />{score.sourcePages.some((page) => page.text) ? '重新识别' : '识别和弦'}</>}</button>}</div>}
 
           {showOriginal ? <>
             {/* 滚动模式把和弦条钉在上方：读到哪儿都能看到指法；单页模式放原图下方 */}

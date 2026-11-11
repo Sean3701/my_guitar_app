@@ -138,7 +138,7 @@ const result = await evaluate(`(() => ({
   stripVisible: Boolean(document.querySelector('.used-chords')),
   headText: document.querySelector('.used-chords-head')?.textContent ?? null,
   chordNames: [...document.querySelectorAll('.used-chord > b')].map((el) => el.textContent),
-  hasRecognizeButton: [...document.querySelectorAll('button')].some((el) => el.textContent.includes('识别和弦')),
+  hasRecognizeButton: [...document.querySelectorAll('button')].some((el) => /识别和弦|重新识别/.test(el.textContent)),
   scrollPages: document.querySelectorAll('.original-scroll-page').length,
 }))()`);
 console.log('[import-test] 结果：', JSON.stringify(result, null, 2));
