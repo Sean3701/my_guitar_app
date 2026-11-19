@@ -5,3 +5,6 @@ dist/
 .workbuddy/reference/
 dist-check/
 public/vendor/tesseract/
+
+# 本地部署运行时日志
+deploy/server.log
