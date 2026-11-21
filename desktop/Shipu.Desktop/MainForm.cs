@@ -12,8 +12,8 @@ internal sealed class MainForm : Form
 {
     private const string Host = "app.shipu.local";
     private static readonly string WebRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-    private static readonly string DataDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Shipu");
+    // 琴谱数据（IndexedDB 与窗口状态）跟程序放在同一个文件夹，便于整体备份到 D 盘
+    private static readonly string DataDir = Path.Combine(AppContext.BaseDirectory, "data");
     private static readonly string StatePath = Path.Combine(DataDir, "window.json");
 
     private readonly WebView2 _view = new() { Dock = DockStyle.Fill };
